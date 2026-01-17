@@ -76,16 +76,16 @@ export default function SimuladorPage() {
     }, [dimensions, selectedPaperData]);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
             <PublicHeader />
 
             <main className="flex-1 container mx-auto px-4 py-8">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
                             Simulador de Ambientes
                         </h1>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 dark:text-gray-400">
                             Visualize, calcule e transforme sua parede em segundos.
                         </p>
                     </div>
@@ -93,11 +93,11 @@ export default function SimuladorPage() {
                     {!bgImage ? (
                         <ImageUploader onImageSelect={handleImageSelect} />
                     ) : (
-                        <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
                             {/* Toolbar */}
                             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                                 <div className="flex gap-4 items-center flex-wrap">
-                                    <h2 className="text-xl font-semibold text-gray-900">Sua Simulação</h2>
+                                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sua Simulação</h2>
 
                                     {mode === 'view' ? (
                                         <button
@@ -188,25 +188,25 @@ export default function SimuladorPage() {
 
                             <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 <div className="lg:col-span-2">
-                                    <h3 className="font-medium mb-4 flex items-center justify-between text-gray-900">
+                                    <h3 className="font-medium mb-4 flex items-center justify-between text-gray-900 dark:text-white">
                                         Escolha o Papel de Parede
-                                        <span className="text-xs font-normal text-gray-500">{MOCK_PAPERS.length} opções disponíveis</span>
+                                        <span className="text-xs font-normal text-gray-500 dark:text-gray-400">{MOCK_PAPERS.length} opções disponíveis</span>
                                     </h3>
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-96 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300">
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-96 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                         {MOCK_PAPERS.map((paper) => (
                                             <div
                                                 key={paper.id}
                                                 onClick={() => setSelectedPaper(paper.id)}
                                                 className={`
                             group cursor-pointer rounded-lg border-2 overflow-hidden transition-all relative
-                            ${selectedPaper === paper.id ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200 hover:border-gray-300'}
+                            ${selectedPaper === paper.id ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
                         `}
                                             >
                                                 <img src={paper.thumbnail} alt={paper.name} referrerPolicy="no-referrer" className="w-full aspect-square object-cover" />
                                                 <div className={`absolute inset-0 transition-colors ${selectedPaper === paper.id ? 'bg-blue-500/10' : 'bg-black/0 group-hover:bg-black/5'}`} />
-                                                <div className="p-2 text-xs font-medium truncate bg-white border-t border-gray-100 text-gray-900">
+                                                <div className="p-2 text-xs font-medium truncate bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 text-gray-900 dark:text-white">
                                                     {paper.name}
-                                                    <div className="text-gray-500 font-normal">R$ {paper.price_m2.toFixed(2)}/m²</div>
+                                                    <div className="text-gray-500 dark:text-gray-300 font-normal">R$ {paper.price_m2.toFixed(2)}/m²</div>
                                                 </div>
                                             </div>
                                         ))}
