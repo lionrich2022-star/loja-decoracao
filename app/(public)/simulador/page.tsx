@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import PublicHeader from '@/components/layout/PublicHeader';
 import ImageUploader from '@/components/simulator/ImageUploader';
 import QuoteModal from '@/components/simulator/QuoteModal';
+import { useRef } from 'react'; // Added useRef
 import WallList from '@/components/simulator/WallList';
 import SimulatorSettingsModal from '@/components/simulator/SimulatorSettingsModal';
 import { supabase } from '@/lib/supabase'; // Import supabase
@@ -21,6 +22,24 @@ import { SIMULATOR_CONFIG, WallData } from '@/components/simulator/SimulatorConf
 
 
 
+const presets = {
+    luxo: {
+        opacity: 0.85,
+        blur: 0.6,
+        blend: "multiply",
+    },
+    realista: {
+        opacity: 0.88,
+        blur: 0.8,
+        blend: "multiply",
+    },
+    economico: {
+        opacity: 0.92,
+        blur: 0.4,
+        blend: "multiply",
+    },
+};
+
 export default function SimuladorPage() {
     // Runtime Config State (initialized from default config)
     const [config, setConfig] = useState(SIMULATOR_CONFIG);
@@ -29,6 +48,8 @@ export default function SimuladorPage() {
     const [bgImage, setBgImage] = useState<string | null>(null);
     const [selectedPaper, setSelectedPaper] = useState<string | null>(null);
     const [opacity, setOpacity] = useState(config.defaultOpacity);
+    const [preset, setPreset] = useState<any>(presets.realista);
+    const [showWallpaper, setShowWallpaper] = useState(true);
     const [scale, setScale] = useState(config.defaultScale);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,7 +64,47 @@ export default function SimuladorPage() {
     const [walls, setWalls] = useState<WallData[]>([]);
     const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
 
+
+
     const [isDetecting, setIsDetecting] = useState(false);
+
+    // Export & Branding Refs
+    const stageRef = useRef<any>(null);
+
+    const store = {
+        name: "Decora Desing",
+        phone: "(38) 99726-9019", // Display
+        whatsapp: "5538997269019", // Clean for link
+        logoUrl: "/logo.png",
+    };
+
+    const exportImage = () => {
+        const stage = stageRef.current;
+        if (!stage) return;
+
+        const dataURL = stage.toDataURL({
+            pixelRatio: 2, // High quality for retina/export
+            mimeType: "image/png",
+        });
+
+        const link = document.createElement("a");
+        link.download = "simulacao-decora-lux.png";
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const sendToWhatsApp = () => {
+        const message = encodeURIComponent(
+            `Olá! 😊\nFiz uma simulação de papel de parede e gostaria de um orçamento.\n\nMedidas informadas:\nAltura: ${dimensions.height.toFixed(2)} m\nLargura: ${dimensions.width.toFixed(2)} m\n\nPapel: ${selectedPaperData?.nome || 'Não selecionado'}\n\nPode me ajudar?`
+        );
+
+        window.open(
+            `https://wa.me/${store.whatsapp}?text=${message}`,
+            "_blank"
+        );
+    };
 
     useEffect(() => {
         async function fetchPapers() {
@@ -353,9 +414,10 @@ export default function SimuladorPage() {
                             <ImageUploader onImageSelect={handleImageSelect} />
                         ) : (
                             <CanvasStage
+                                ref={stageRef}
                                 bgImageUrl={bgImage}
-                                patternUrl={selectedPaperData?.imagem_url || null}
-                                opacity={opacity}
+                                patternUrl={showWallpaper ? (selectedPaperData?.imagem_url || null) : null}
+                                preset={preset}
                                 scale={scale}
                                 mode={mode}
                                 wallPoints={wallPoints}
@@ -456,6 +518,29 @@ export default function SimuladorPage() {
                                 )}
                             </div>
 
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4">
+                                <button
+                                    onClick={() => setShowWallpaper(!showWallpaper)}
+                                    className="w-full py-2 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                >
+                                    {showWallpaper ? "👁️ Ver original (Esconder)" : "👁️ Ver simulação (Mostrar)"}
+                                </button>
+                                <div className="pt-4 flex gap-2">
+                                    <button
+                                        onClick={exportImage}
+                                        className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                                    >
+                                        📸 Baixar Imagem
+                                    </button>
+                                    <button
+                                        onClick={sendToWhatsApp}
+                                        className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
+                                    >
+                                        <span>💬</span> Orçamento WhatsApp
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 shadow-sm">
                                 <div className="flex justify-between items-end mb-1">
                                     <span className="text-gray-600 font-medium">Valor Estimado</span>
@@ -503,8 +588,8 @@ export default function SimuladorPage() {
                             )}
                         </div>
                     </div>
-                </div>
-            </main>
+                </div >
+            </main >
 
             <QuoteModal
                 isOpen={isModalOpen}
@@ -526,6 +611,6 @@ export default function SimuladorPage() {
                 onConfigChange={setConfig}
             />
             <Footer />
-        </div>
+        </div >
     );
 }

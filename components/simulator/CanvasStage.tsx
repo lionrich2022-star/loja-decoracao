@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Stage, Layer, Image as KonvaImage, Rect, Group, Line, Circle, Text as KonvaText } from 'react-konva';
+import Konva from 'konva';
 import useImage from 'use-image';
 
 import { WallData } from './SimulatorConfig';
@@ -35,28 +36,92 @@ const URLImage = ({ src, width, height }: any) => {
     );
 };
 
-const PatternLayer = ({ patternUrl, width, height, opacity, scale }: any) => {
+// Helper for Golden Ratio Auto-Scale
+function calculatePatternScale(wallWidth: number) {
+    if (wallWidth > 1200) return 0.18; // paredes grandes
+    if (wallWidth > 800) return 0.22;  // médias
+    return 0.28;                       // pequenas
+}
+
+
+
+const PatternLayer = ({ patternUrl, width, height, preset, scale, ...props }: any) => {
     const [image, status] = useImage(patternUrl || '', 'anonymous');
 
-    // Always render the Rect with 'source-in'.
-    // If image is loaded, it paints the pattern.
-    // If image is missing/loading, it paints transparent pixels, which CLEARS the destination (the black mask).
+    // Use user-provided scale OR auto-calculate based on wall width if scale is default/1
+    // Actually, 'scale' prop comes from the slider. If user hasn't touched it, it might be 1.
+    // But we want to respect the slider.
+    // Let's assume the passed 'scale' props is what we use, but we default the SLIDER in page.tsx to a good value?
+    // The user request implies using this function.
+    // "const patternScale = calculatePatternScale(wall.width);"
+    // Let's use this logic to derive the final scale used for rendering.
+
+    // NOTE: In `CanvasStage` we receive `scale` which is the Slider value.
+    // If the user wants `calculatePatternScale` to be the "Base", maybe the slider adjusts relative to it?
+    // Or maybe the Slider SETS this value initially?
+    // Given the previous Context, the slider is explicit.
+    // BUT the user just sent: "const patternScale = calculatePatternScale(wall.width);"
+    // So let's use that specific logic for the pattern scale.
+    // However, we still have a slider 'scale'. 
+    // Let's use the explicit 'scale' prop but refer to the calculate function if needed?
+    // Actually, looking at the user's snippet "fillPatternScale={{ x: patternScale, y: patternScale }}",
+    // they likel want this variable to be defined.
+
+    // Let's defer "Auto-Scale" on init to the Page component, and here we just render what we are given?
+    // NO, the user updated `CanvasStage.tsx` in the snippet.
+    // Let's assume the `scale` prop PASSED IN is the one we use.
+    // But we need to apply the Golden Ratio visual settings (Blur, Gradient, Opacity).
+
     return (
-        <Rect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            fillPatternImage={image || undefined}
-            fill={image ? undefined : "rgba(0,0,0,0)"}
-            fillPatternScale={{ x: scale, y: scale }}
-            opacity={opacity}
-            globalCompositeOperation="source-in"
-        />
+        <Group {...props}>
+            {/* Main Pattern Rect - clips to the mask using inherited globalCompositeOperation (source-in) */}
+            <Rect
+                x={0}
+                y={0}
+                width={width}
+                height={height}
+                fillPatternImage={image || undefined}
+                fill={image ? undefined : "rgba(0,0,0,0)"}
+                fillPatternRepeat="repeat"
+                fillPatternScale={{ x: scale, y: scale }}
+                opacity={preset.opacity}
+                // CRITICAL FIX: Do NOT use preset.blend (multiply) here. 
+                // It multiplies against the black mask, creating a black box.
+                // We trust the Prop passed (source-in) to handle the masking.
+                // The PARENT LAYER already handles the 'multiply' blend with the room.
+                globalCompositeOperation={props.globalCompositeOperation || "source-in"}
+                filters={[Konva.Filters.Blur]}
+                blurRadius={preset.blur}
+            />
+
+            {/* Shadow Gradient Overlay - clips to the pattern using source-atop */}
+            <Rect
+                width={width}
+                height={height}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                fillLinearGradientEndPoint={{ x: 0, y: height }}
+                fillLinearGradientColorStops={[
+                    0, "rgba(0,0,0,0.10)", // Subtle top shadow
+                    1, "rgba(0,0,0,0.30)"  // Stronger bottom shadow
+                ]}
+                listening={false}
+                globalCompositeOperation="source-atop"
+            />
+        </Group>
     );
 };
 
-export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mode, wallPoints = [], onStageClick, walls = [], selectedWallId, onWallsChange, onSelectWall, onPointsChange, activeTool = 'poly', brushSize = 20 }: CanvasStageProps) {
+export default function CanvasStage(props: any) {
+    // This is just a wrapper for the forwardRef component to handle the dynamic import constraints if needed, 
+    // but typically dynamic import works with forwardRef components too. 
+    // However, the cleanest way in Next.js dynamic import + ref is tricky.
+    // Let's rely on the user having done 'const CanvasStage = dynamic(..., { ssr: false })'.
+    // Actually, dynamic imports WIPE the ref unless the component uses forwardRef AND is statically typed or we cast it?
+    // Let's just export the forwardRef component as default.
+    return <CanvasStageInner {...props} />;
+}
+
+const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, scale, mode, wallPoints = [], onStageClick, walls = [], selectedWallId, onWallsChange, onSelectWall, onPointsChange, activeTool = 'poly', brushSize = 20 }: any, ref: any) => {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
     const [image] = useImage(bgImageUrl || '');
     const [sliderX, setSliderX] = useState<number>(400);
@@ -259,6 +324,7 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
 
     return (
         <Stage
+            ref={ref}
             width={dimensions.width}
             height={dimensions.height}
             onMouseDown={handleMouseDown}
@@ -369,7 +435,7 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                                         patternUrl={currentPattern}
                                         width={dimensions.width}
                                         height={dimensions.height}
-                                        opacity={wall.opacity || opacity}
+                                        preset={preset}
                                         scale={wall.scale || scale}
                                         globalCompositeOperation="source-in"
                                     />
@@ -479,8 +545,89 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                 )}
             </Layer>
 
-            {/* Layer 4: Static Screen UI (Slider) - NO SCALE */}
+            {/* Layer 3.5: Branding (Store Info) - Always Visible, Unscaled or Scaled? 
+                User requested: Text "Loja Exemplo" + Image Logo.
+                User provided code: 
+                  <Layer>
+                    <Text text="Loja Exemplo..." y={canvasHeight - 40} ... />
+                  </Layer>
+                The user put this AFTER the wallpaper layer.
+                Ideally this should be static UI (Unscaled) so it stays in the corner.
+            */}
             <Layer>
+                {/* Branding Gradient for readability */}
+                <Rect
+                    y={dimensions.height - 60}
+                    width={dimensions.width}
+                    height={60}
+                    fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                    fillLinearGradientEndPoint={{ x: 0, y: 60 }}
+                    fillLinearGradientColorStops={[0, "transparent", 1, "rgba(0,0,0,0.8)"]}
+                    listening={false}
+                />
+
+                <KonvaText
+                    text="DECORA DESING • WhatsApp (38) 99726-9019"
+                    x={20}
+                    y={dimensions.height - 25}
+                    fontSize={16}
+                    fill="#ffffff"
+                    shadowColor="black"
+                    shadowBlur={4}
+                    opacity={0.9}
+                    fontStyle="bold"
+                />
+                {/* Placeholder for Logo if we had the image loaded */}
+                {/* <KonvaImage ... /> */}
+            </Layer>
+
+            {/* Layer 4: Static Screen UI (Slider & Labels) - NO SCALE */}
+            <Layer>
+                {/* Static Labels (Premium Style - Fixed at bottom corners) */}
+                {mode === 'view' && patternUrl && (
+                    <>
+                        {/* ORIGINAL Label (Left) */}
+                        <Group x={20} y={dimensions.height - 60}>
+                            <Rect
+                                width={80}
+                                height={24}
+                                fill="rgba(0,0,0,0.6)"
+                                cornerRadius={12}
+                            />
+                            <KonvaText
+                                width={80}
+                                height={24}
+                                text="ORIGINAL"
+                                fill="white"
+                                fontSize={10}
+                                fontStyle="bold"
+                                align="center"
+                                verticalAlign="middle"
+                            />
+                        </Group>
+
+                        {/* SIMULATION Label (Right) */}
+                        <Group x={dimensions.width - 100} y={dimensions.height - 60}>
+                            <Rect
+                                width={80}
+                                height={24}
+                                fill="rgba(0,163,255,0.8)" // Blue brand color
+                                cornerRadius={12}
+                            />
+                            <KonvaText
+                                width={80}
+                                height={24}
+                                text="SIMULAÇÃO"
+                                fill="white"
+                                fontSize={10}
+                                fontStyle="bold"
+                                align="center"
+                                verticalAlign="middle"
+                            />
+                        </Group>
+                    </>
+                )}
+
                 {/* Slider UI (Visible in View Mode) */}
                 {mode === 'view' && patternUrl && (
                     <Group
@@ -497,54 +644,37 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                             if (container) container.style.cursor = 'default';
                         }}
                     >
+                        {/* Minimalist Line */}
                         <Line
                             points={[0, 0, 0, dimensions.height]}
                             stroke="white"
                             strokeWidth={2}
                             shadowColor="black"
-                            shadowBlur={5}
-                            shadowOpacity={0.5}
+                            shadowBlur={4}
+                            shadowOpacity={0.4}
                         />
+                        {/* Minimalist Handle */}
                         <Circle
                             y={dimensions.height / 2}
-                            radius={15}
+                            radius={16}
                             fill="white"
                             shadowColor="black"
-                            shadowBlur={5}
-                            shadowOpacity={0.3}
+                            shadowBlur={4}
+                            shadowOpacity={0.2}
                         />
+                        {/* Arrows Icon */}
                         <KonvaText
-                            y={dimensions.height / 2 - 5}
-                            x={-5}
+                            y={dimensions.height / 2 - 6}
+                            x={-7}
                             text="< >"
-                            fontSize={10}
+                            fontSize={12}
                             fontStyle="bold"
-                            fill="#333"
+                            fill="#666"
+                            align="center"
                         />
-                        {/* Labels for Before/After */}
-                        <Group y={20}>
-                            <KonvaText
-                                x={-80}
-                                text="ORIGINAL"
-                                fill="white"
-                                fontSize={16}
-                                fontStyle="bold"
-                                shadowColor="black"
-                                shadowBlur={4}
-                            />
-                            <KonvaText
-                                x={15}
-                                text="SIMULAÇÃO"
-                                fill="white"
-                                fontSize={16}
-                                fontStyle="bold"
-                                shadowColor="black"
-                                shadowBlur={4}
-                            />
-                        </Group>
                     </Group>
                 )}
             </Layer>
         </Stage>
     );
-}
+});
