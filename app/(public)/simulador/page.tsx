@@ -7,6 +7,7 @@ import ImageUploader from '@/components/simulator/ImageUploader';
 import QuoteModal from '@/components/simulator/QuoteModal';
 import { supabase } from '@/lib/supabase'; // Import supabase
 import { Loader2 } from 'lucide-react';
+import Footer from '@/components/layout/Footer';
 
 // Import Konva Stage dynamically to avoid SSR issues
 const CanvasStage = dynamic(() => import('@/components/simulator/CanvasStage'), {
@@ -237,6 +238,7 @@ export default function SimuladorPage() {
             }}
             imageBlob={bgImage} // Passing the BLOB url (will basically just save string)
         />
+        <Footer />
         </div >
     );
 }

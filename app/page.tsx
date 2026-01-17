@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Footer from '@/components/layout/Footer';
 import { ArrowRight, Star, Sparkles, LayoutTemplate } from 'lucide-react';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 
@@ -115,6 +116,8 @@ export default function Home() {
                     </div>
                 </section>
             </main>
+
+            <Footer />
         </div>
     );
 }
