@@ -47,7 +47,7 @@ const PatternLayer = ({ patternUrl, width, height, opacity, scale }: any) => {
     );
 };
 
-export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mode, wallPoints, onStageClick }: CanvasStageProps) {
+export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mode, wallPoints = [], onStageClick, walls = [], selectedWallId, onWallsChange, onSelectWall }: CanvasStageProps) {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
     const [image] = useImage(bgImageUrl || undefined);
     const [sliderX, setSliderX] = useState<number>(400); // Default slider position
@@ -83,7 +83,7 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
             width={dimensions.width}
             height={dimensions.height}
             onMouseDown={(e) => {
-                if (mode === 'masking') onStageClick(e);
+                if (mode === 'masking' && onStageClick) onStageClick(e);
             }}
             onMouseMove={(e) => {
                 const stage = e.target.getStage();
