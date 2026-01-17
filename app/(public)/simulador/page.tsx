@@ -39,7 +39,28 @@ export default function SimuladorPage() {
 
     const [isDetecting, setIsDetecting] = useState(false);
 
-    // ... (fetchPapers effect)
+    useEffect(() => {
+        async function fetchPapers() {
+            try {
+                const { data, error } = await supabase
+                    .from('papeis')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Supabase error fetching papers:', error);
+                    // If error, maybe empty list but stop loading
+                }
+                setPapers(data || []);
+            } catch (error) {
+                console.error('Unexpected error fetching papers:', error);
+            } finally {
+                setLoadingPapers(false);
+            }
+        }
+
+        fetchPapers();
+    }, []);
 
     const handleImageSelect = (file: File) => {
         const url = URL.createObjectURL(file);
