@@ -21,7 +21,7 @@ export default function Footer() {
                         className="flex flex-col items-center md:items-end gap-2 group mt-3"
                     >
                         <span className="text-[10px] text-gray-600 group-hover:text-gold-500 transition-colors uppercase tracking-widest">Desenvolvido por</span>
-                        <img src="/kryon-logo.png" alt="Kryon Systems" className="h-8 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity" />
+                        <img src="/kryon-logo.png" alt="Kryon Systems" className="h-24 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
                     </a>
                 </div>
             </div>
