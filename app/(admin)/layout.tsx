@@ -66,7 +66,7 @@ export default function AdminLayout({
                                 Loja Decor <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Admin</span>
                             </a>
                             <nav className="hidden md:flex gap-4 text-sm font-medium text-gray-600">
-                                <a href="/" className="hover:text-blue-600 transition-colors">Dashboard</a>
+                                <a href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</a>
                                 <a href="/papeis" className="hover:text-blue-600 transition-colors">Papéis</a>
                                 <a href="/orcamentos" className="hover:text-blue-600 transition-colors">Orçamentos</a>
                             </nav>
