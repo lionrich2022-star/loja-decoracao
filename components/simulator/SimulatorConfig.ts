@@ -23,4 +23,10 @@ export type WallData = {
     paperUrl?: string | null;           // URL for rendering
     opacity?: number;
     scale?: number;
+    brushStrokes?: {
+        id: string;
+        points: number[];
+        tool: 'add' | 'remove';
+        size: number;
+    }[];
 };

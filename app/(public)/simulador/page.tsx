@@ -131,18 +131,24 @@ export default function SimuladorPage() {
     // Masking State
     const [wallPoints, setWallPoints] = useState<{ x: number; y: number }[]>([]);
 
+    // V4: Brush Components
+    const [activeTool, setActiveTool] = useState<'poly' | 'brush-add' | 'brush-remove'>('poly');
+    const [brushSize, setBrushSize] = useState(20);
+
     // Handler to Add Manual Wall (V3)
     const handleAddWall = () => {
         const newId = `wall-manual-${Date.now()}`;
         const newWall: WallData = {
             id: newId,
             name: `Nova Parede ${walls.length + 1}`,
-            points: [] // Empty start, or maybe a default small rect
+            points: [],
+            brushStrokes: []
         };
         setWalls(prev => [...prev, newWall]);
         setSelectedWallId(newId);
-        setWallPoints([]); // Cleared for new input
+        setWallPoints([]);
         setMode('masking');
+        setActiveTool('poly'); // Reset to poly
     };
 
     const handleRemoveWall = (id: string) => {
@@ -245,15 +251,62 @@ export default function SimuladorPage() {
                                     </button>
                                 )}
 
+                                {/* V1: Polygon Tool */}
                                 <button
-                                    onClick={toggleMaskingMode}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${mode === 'masking'
+                                    onClick={() => {
+                                        setMode(mode === 'masking' ? 'view' : 'masking');
+                                        setActiveTool('poly'); // Set poly tool when entering masking mode
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${mode === 'masking' && activeTool === 'poly'
                                         ? 'bg-blue-600 text-white shadow-sm'
                                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
                                         }`}
                                 >
                                     {mode === 'masking' ? '✅ Concluir' : '✂️ Recortar'}
                                 </button>
+
+                                {/* V4: Brush Tools */}
+                                {config.enableBrush && mode === 'masking' && (
+                                    <div className="flex items-center gap-1 ml-2 border-l border-gray-300 dark:border-gray-600 pl-3">
+                                        <button
+                                            onClick={() => setActiveTool('poly')}
+                                            className={`p-2 rounded transition-colors ${activeTool === 'poly'
+                                                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 ring-2 ring-blue-500'
+                                                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                            title="Polígono (Pontos)"
+                                        >
+                                            📐
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTool('brush-add')}
+                                            className={`p-2 rounded transition-colors ${activeTool === 'brush-add'
+                                                ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400 ring-2 ring-green-500'
+                                                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                            title="Pincel (Adicionar Área)"
+                                        >
+                                            🖌️
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTool('brush-remove')}
+                                            className={`p-2 rounded transition-colors ${activeTool === 'brush-remove'
+                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 ring-2 ring-red-500'
+                                                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                            title="Borracha (Remover Área)"
+                                        >
+                                            🧹
+                                        </button>
+                                        <input
+                                            type="range"
+                                            min="5"
+                                            max="80"
+                                            value={brushSize}
+                                            onChange={(e) => setBrushSize(Number(e.target.value))}
+                                            className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                                            title={`Tamanho: ${brushSize}px`}
+                                        />
+                                    </div>
+                                )}
+
                                 {mode === 'masking' && (
                                     <>
                                         <button
@@ -305,8 +358,19 @@ export default function SimuladorPage() {
                                 mode={mode}
                                 wallPoints={wallPoints}
                                 onStageClick={handleStageClick}
-                                // V3 Props (unused for now but kept for compatibility if needed)
+                                // V3 Props
                                 walls={walls}
+                                selectedWallId={selectedWallId}
+                                onWallsChange={setWalls}
+                                onSelectWall={(id) => {
+                                    setSelectedWallId(id);
+                                    const wall = walls.find(w => w.id === id);
+                                    if (wall) setWallPoints(wall.points);
+                                    setMode('masking');
+                                }}
+                                // V4 Props
+                                activeTool={activeTool}
+                                brushSize={brushSize}
                             />
                         )}
                     </div>
