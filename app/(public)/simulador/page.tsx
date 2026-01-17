@@ -46,19 +46,19 @@ export default function SimuladorPage() {
     const [isDetecting, setIsDetecting] = useState(false);
 
     useEffect(() => {
-        // Track visit
-        const trackVisit = async () => {
+        const recordVisit = async () => {
+            // Check session storage to avoid duplicate counts in same session (simple debounce)
+            if (sessionStorage.getItem('visited_simulator')) return;
+
             try {
-                // Try RPC first (atomic)
-                const { error } = await supabase.rpc('increment_visit', { path_arg: '/simulador' });
-                if (error) {
-                    console.error('Error tracking visit:', error);
-                }
-            } catch (e) {
-                console.error('Visit tracking exception:', e);
+                await supabase.from('page_views').insert({ page: 'simulator' });
+                sessionStorage.setItem('visited_simulator', 'true');
+            } catch (err) {
+                console.error('Error recording visit:', err);
             }
         };
-        trackVisit();
+
+        recordVisit();
     }, []);
 
     useEffect(() => {
