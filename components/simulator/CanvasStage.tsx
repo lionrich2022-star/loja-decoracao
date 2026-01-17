@@ -17,6 +17,7 @@ interface CanvasStageProps {
     selectedWallId?: string | null;
     onWallsChange?: (walls: WallData[]) => void;
     onSelectWall?: (id: string | null) => void;
+    onPointsChange?: (points: { x: number; y: number }[]) => void;
 
     // V4 Props
     activeTool?: 'poly' | 'brush-add' | 'brush-remove';
@@ -53,9 +54,9 @@ const PatternLayer = ({ patternUrl, width, height, opacity, scale }: any) => {
     );
 };
 
-export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mode, wallPoints = [], onStageClick, walls = [], selectedWallId, onWallsChange, onSelectWall, activeTool = 'poly', brushSize = 20 }: CanvasStageProps) {
+export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mode, wallPoints = [], onStageClick, walls = [], selectedWallId, onWallsChange, onSelectWall, onPointsChange, activeTool = 'poly', brushSize = 20 }: CanvasStageProps) {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-    const [image] = useImage(bgImageUrl || undefined);
+    const [image] = useImage(bgImageUrl || '');
     const [sliderX, setSliderX] = useState<number>(400);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
 
@@ -158,113 +159,155 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
             onMouseLeave={() => { setIsDraggingSlider(false); setIsPaintDrawing(false); }}
             className={mode === 'masking' ? (activeTool === 'poly' ? 'cursor-crosshair' : 'cursor-none') : isDraggingSlider ? 'cursor-ew-resize' : 'cursor-default'}
         >
+            {/* Layer 1: Background Image (Bottom) */}
             <Layer>
-                {/* 1. Background Image (Always Visible) */}
                 <URLImage
                     src={bgImageUrl}
                     width={dimensions.width}
                     height={dimensions.height}
                 />
+            </Layer>
 
-                {/* 2. Pattern Group (Before/After Slider + Mask) */}
-                {/* 2. Pattern Group (Multi-Wall V3 + Brush V4) */}
-                <Group
-                    // Slider Clipping (Global for all walls for now, simplifies comparison)
-                    clipFunc={(ctx) => {
-                        ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
-                    }}
-                >
-                    {/* Render each wall independently */}
-                    {walls.length > 0 ? (
-                        walls.map((wall) => {
-                            const currentPattern = wall.paperUrl || patternUrl;
-                            if (!currentPattern) return null;
+            {/* Layer 2: Wall Patterns (Middle) - Contains the masking magic */}
+            <Layer
+                // Slider Clipping at Layer level for the entire "After" view
+                clipFunc={mode === 'view' ? (ctx) => {
+                    // In View mode, we only show this layer (the simulation) to the right of the slider
+                    // But wait, the slider logic in the original code was:
+                    // SliderX defines the split.
+                    // Left side = Original (Background only).
+                    // Right side = Simulation (Background + Wallpaper).
+                    // So we typically want to CLIP this whole Layer to the region > SliderX
+                    // OR < SliderX depending on design. 
+                    // Standard: Left = Original, Right = Simulation? 
+                    // The user uploaded image shows: Left = Original, Right = Sim.
+                    // So we clip this layer to rect(sliderX, 0, width-sliderX, height).
+                    ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
+                } : undefined}
+            >
+                {/* Render each wall independently */}
+                {walls.length > 0 ? (
+                    walls.map((wall) => {
+                        const currentPattern = wall.paperUrl || patternUrl;
+                        if (!currentPattern) return null;
 
-                            // Check if we have brush strokes - if so, we generally need Raster composition.
-                            // For simplicity in this iteration, we stick to Vector Clipping for the Base Poly
-                            // BUT we need to support the Brush.
-                            //
-                            // MVP V4 Strategy:
-                            // We will render the Pattern clipped by the Polygon FIRST.
-                            // THEN we render "Additional Areas" (Brush Add) clipped by their own paths? No, seamless is needed.
-
-                            // REF: To do this properly with React Konva, we really need the Group to be cached.
-                            // Let's rely on Konva's 'Layer' structure if possible, but we are inside a Stage.
-
-                            return (
-                                <Group key={wall.id}>
+                        return (
+                            <Group key={wall.id}>
+                                {/* 
+                                   COMPLEX MASKING STRATEGY: 
+                                   1. Define the Shape (Poly + AddStrokes - RemoveStrokes).
+                                   2. Fill it with Pattern.
+                                */}
+                                <Group>
                                     {/* 
-                                       COMPLEX MASKING STRATEGY: 
-                                       1. Define the Shape (Poly + AddStrokes - RemoveStrokes).
-                                       2. Fill it with Pattern.
+                                       The Mask Shape: Render the polygon and brush strokes as a black shape.
+                                       This will define the area where the pattern will be visible.
                                     */}
                                     <Group>
-                                        {/* 
-                                           The Mask Shape: Render the polygon and brush strokes as a black shape.
-                                           This will define the area where the pattern will be visible.
-                                        */}
-                                        <Group>
-                                            {/* Base Polygon */}
-                                            <Line
-                                                points={wall.points.flatMap(p => [p.x, p.y])}
-                                                closed
-                                                fill="black"
-                                            />
-                                            {/* Brush Strokes */}
-                                            {wall.brushStrokes?.map((stroke: any, i: number) => (
-                                                <Line
-                                                    key={i}
-                                                    points={stroke.points}
-                                                    stroke="black"
-                                                    strokeWidth={stroke.size}
-                                                    lineCap="round"
-                                                    lineJoin="round"
-                                                    globalCompositeOperation={stroke.tool === 'remove' ? 'destination-out' : 'source-over'}
-                                                />
-                                            ))}
-                                            {/* Current Drawing Stroke (If this is the active wall) */}
-                                            {isPaintDrawing && currentStroke && selectedWallId === wall.id && (
-                                                <Line
-                                                    points={currentStroke.points}
-                                                    stroke="black"
-                                                    strokeWidth={currentStroke.size}
-                                                    lineCap="round"
-                                                    lineJoin="round"
-                                                    globalCompositeOperation={currentStroke.tool === 'remove' ? 'destination-out' : 'source-over'}
-                                                />
-                                            )}
-                                        </Group>
-
-                                        {/* 
-                                           The Pattern Layer: Render the pattern, using 'source-in' to only show it
-                                           where it overlaps with the black mask shape rendered above.
-                                        */}
-                                        <PatternLayer
-                                            patternUrl={currentPattern}
-                                            width={dimensions.width}
-                                            height={dimensions.height}
-                                            opacity={wall.opacity || opacity}
-                                            scale={wall.scale || scale}
-                                            globalCompositeOperation="source-in"
+                                        {/* Base Polygon */}
+                                        <Line
+                                            points={(wall.points.length >= 3 ? wall.points : defaultMask).flatMap(p => [p.x, p.y])}
+                                            closed
+                                            fill="black"
+                                        // Ensure this is treated as the base content for this group logic
                                         />
+                                        {/* Brush Strokes */}
+                                        {wall.brushStrokes?.map((stroke: any, i: number) => (
+                                            <Line
+                                                key={i}
+                                                points={stroke.points}
+                                                stroke="black"
+                                                strokeWidth={stroke.size}
+                                                lineCap="round"
+                                                lineJoin="round"
+                                                globalCompositeOperation={stroke.tool === 'remove' ? 'destination-out' : 'source-over'}
+                                            />
+                                        ))}
+                                        {/* Current Drawing Stroke (If this is the active wall) */}
+                                        {isPaintDrawing && currentStroke && selectedWallId === wall.id && (
+                                            <Line
+                                                points={currentStroke.points}
+                                                stroke="black"
+                                                strokeWidth={currentStroke.size}
+                                                lineCap="round"
+                                                lineJoin="round"
+                                                globalCompositeOperation={currentStroke.tool === 'remove' ? 'destination-out' : 'source-over'}
+                                            />
+                                        )}
                                     </Group>
 
-                                    {/* Selected Outline */}
-                                    {selectedWallId === wall.id && mode === 'view' && (
-                                        <Line
-                                            points={wall.points.flatMap(p => [p.x, p.y])}
-                                            closed
-                                            stroke="#3b82f6"
-                                            strokeWidth={2}
-                                            opacity={0.5}
-                                        />
-                                    )}
+                                    {/* 
+                                       The Pattern Layer: Render the pattern, using 'source-in' to only show it
+                                       where it overlaps with the black mask shape rendered above.
+                                       
+                                       CRITICAL: For 'source-in' to work against ONLY the mask we just drew, 
+                                       they need to be composited together. In a single Layer, 'source-in' 
+                                       uses EVERYTHING below it as the mask. 
+                                       Since this Layer only contains Walls, enabling 'clearBeforeDraw' is default.
+                                       However, if we have Multiple Walls, Wall A is drawn first.
+                                       Wall B uses 'source-in'. It will use Wall A as part of the mask if we aren't careful.
+                                       
+                                       Ideally, each Wall should be its own Layer? No, that's too heavy.
+                                       We can use globalCompositeOperation='source-over' for the result of (Mask + Pattern).
+                                       
+                                       Solution:
+                                       We need to cache the Mask Group? 
+                                       Or we accept that Walls don't overlap much.
+                                       
+                                       Better approach for Konva:
+                                       Use 'clipFunc' on a Group instead of composite operations?
+                                       Konva Groups support arbitrary clipFuncs but they are canvas path commands, 
+                                       hard to do with Brush strokes (raster).
+                                       
+                                       Back to Compositing:
+                                       We can render the Pattern for the WHOLE screen, 
+                                       then use the Mask to cut it?
+                                       
+                                       Let's try this order for a single wall:
+                                       1. Draw Mask (Black).
+                                       2. Draw Pattern (source-in). 
+                                       This replaces the Black Mask with Pattern.
+                                       
+                                       If we have multiple walls:
+                                       1. Draw Wall 1 Mask -> Pattern.
+                                       2. Draw Wall 2 Mask -> Pattern.
+                                       
+                                       If Wall 2 draws 'source-in', it uses (Wall 1 + Wall 2 Mask) as the source?
+                                       Yes, 'destination' is the accumulator.
+                                       
+                                       To isolate walls, we might encounter issues.
+                                       BUT for MVP V4 with typically non-overlapping walls, this is fine.
+                                    */}
+                                    <PatternLayer
+                                        patternUrl={currentPattern}
+                                        width={dimensions.width}
+                                        height={dimensions.height}
+                                        opacity={wall.opacity || opacity}
+                                        scale={wall.scale || scale}
+                                        globalCompositeOperation="source-in"
+                                    />
                                 </Group>
-                            );
-                        })
-                    ) : (
-                        // Fallback: V1 Single Wall (Active User Mask)
-                        patternUrl && (
+
+                                {/* Selected Outline */}
+                                {selectedWallId === wall.id && mode === 'view' && (
+                                    <Line
+                                        points={wall.points.flatMap(p => [p.x, p.y])}
+                                        closed
+                                        stroke="#3b82f6"
+                                        strokeWidth={2}
+                                        opacity={0.5}
+                                        globalCompositeOperation="source-over" // Reset
+                                    />
+                                )}
+                            </Group>
+                        );
+                    })
+                ) : (
+                    // Fallback: V1 Single Wall (Active User Mask)
+                    patternUrl && (
+                        <Group>
+                            {/* Replicate logic for V1 if needed, or just use clipFunc for simple poly */}
+                            {/* Keep simple clipFunc for V1 for now as it supports no brushes */}
                             <Group
                                 clipFunc={(ctx) => {
                                     ctx.beginPath();
@@ -285,12 +328,14 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                                     scale={scale}
                                 />
                             </Group>
-                        )
-                    )}
-                </Group>
+                        </Group>
+                    )
+                )}
+            </Layer>
 
-
-                {/* 3. Slider UI (Visible in View Mode) */}
+            {/* Layer 3: UI Overlays (Top) */}
+            <Layer>
+                {/* Slider UI (Visible in View Mode) */}
                 {mode === 'view' && patternUrl && (
                     <Group
                         x={sliderX}
@@ -354,14 +399,13 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                     </Group>
                 )}
 
-                {/* 4. Masking UI (Visible only when masking) */}
+                {/* Masking UI (Visible only when masking) */}
                 {mode === 'masking' && (
                     <>
-                        {/* Show the Default Mask in a lighter color if active but not user-defined? No, show current points */}
                         <Line
                             points={wallPoints.flatMap(p => [p.x, p.y])}
                             closed={wallPoints.length > 2}
-                            stroke="#ef4444" // Red-500
+                            stroke="#ef4444"
                             strokeWidth={2}
                             dash={[10, 5]}
                         />
@@ -370,13 +414,30 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                                 key={i}
                                 x={point.x}
                                 y={point.y}
-                                radius={6}
+                                radius={8} // Slightly larger hit area
                                 fill="white"
                                 stroke="#ef4444"
                                 strokeWidth={2}
+                                draggable
+                                onDragMove={(e) => {
+                                    const newPoints = [...wallPoints];
+                                    newPoints[i] = { x: e.target.x(), y: e.target.y() };
+                                    // Optimistic update if needed, but usually we rely on parent callback
+                                    // For smooth dragging in React Konva, usually better to update state onDragMove
+                                    if (onPointsChange) {
+                                        onPointsChange(newPoints);
+                                    }
+                                }}
+                                onMouseEnter={(e) => {
+                                    const container = e.target.getStage()?.container();
+                                    if (container) container.style.cursor = 'move';
+                                }}
+                                onMouseLeave={(e) => {
+                                    const container = e.target.getStage()?.container();
+                                    if (container) container.style.cursor = 'crosshair'; // Back to tool cursor
+                                }}
                             />
                         ))}
-                        {/* Helper Text following cursor? Maybe too complex. */}
                     </>
                 )}
             </Layer>

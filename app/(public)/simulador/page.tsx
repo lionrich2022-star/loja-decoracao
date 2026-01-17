@@ -71,8 +71,18 @@ export default function SimuladorPage() {
     const handleImageSelect = (file: File) => {
         const url = URL.createObjectURL(file);
         setBgImage(url);
-        setWalls([]); // Reset walls
-        setSelectedWallId(null);
+
+        // Initialize with a default wall to enable V3/V4 features (Brush, etc) immediately
+        const defaultWallId = `wall-${Date.now()}`;
+        const defaultWall: WallData = {
+            id: defaultWallId,
+            name: 'Parede Principal',
+            points: [], // CanvasStage will handle default mask for empty points
+            brushStrokes: []
+        };
+        setWalls([defaultWall]);
+        setSelectedWallId(defaultWallId);
+        setWallPoints([]);
     };
 
     // V2/V3 AI Detection Logic
@@ -223,11 +233,21 @@ export default function SimuladorPage() {
         return area * (selectedPaperData.preco_m2 || 0);
     }, [dimensions, selectedPaperData]);
 
+    const handlePointsChange = (newPoints: { x: number; y: number }[]) => {
+        setWallPoints(newPoints);
+        if (config.enableMultiWall && selectedWallId) {
+            setWalls(prev => prev.map(w =>
+                w.id === selectedWallId ? { ...w, points: newPoints } : w
+            ));
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
             <PublicHeader />
 
             <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+                {/* ... (Keep existing layout) ... */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl lg:text-4xl font-serif font-bold text-gray-900 dark:text-white mb-2">Simulador de Ambientes</h1>
                     <p className="text-gray-600 dark:text-gray-400">Visualize, calcule e transforme sua parede em segundos.</p>
@@ -237,6 +257,7 @@ export default function SimuladorPage() {
                     {/* Toolbar */}
                     {bgImage && (
                         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                            {/* ... (Keep existing toolbar) ... */}
                             <div className="flex items-center gap-2">
                                 {/* V2: Auto Detect Button */}
                                 {config.enableV2 && (
@@ -371,6 +392,7 @@ export default function SimuladorPage() {
                                 // V4 Props
                                 activeTool={activeTool}
                                 brushSize={brushSize}
+                                onPointsChange={handlePointsChange}
                             />
                         )}
                     </div>
