@@ -10,6 +10,11 @@ interface CanvasStageProps {
     mode: 'view' | 'masking';
     wallPoints: { x: number; y: number }[];
     onStageClick: (e: any) => void;
+    // V3 Props
+    walls?: any[];
+    selectedWallId?: string | null;
+    onWallsChange?: (walls: any[]) => void;
+    onSelectWall?: (id: string | null) => void;
 }
 
 const URLImage = ({ src, width, height }: any) => {
