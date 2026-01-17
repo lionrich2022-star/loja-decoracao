@@ -111,6 +111,38 @@ export default function SimuladorPage() {
         setMode('masking');
     };
 
+    // Masking State
+    const [wallPoints, setWallPoints] = useState<{ x: number; y: number }[]>([]);
+
+    const handleStageClick = (e: any) => {
+        if (mode !== 'masking') return;
+        const stage = e.target.getStage();
+        const pointer = stage.getPointerPosition();
+        if (pointer) {
+            setWallPoints(prev => [...prev, pointer]);
+        }
+    };
+
+    const toggleMaskingMode = () => {
+        if (mode === 'view') {
+            setMode('masking');
+            // If switching to masking and no points, clear any auto/default (start fresh)
+            if (wallPoints.length < 3) setWallPoints([]);
+        } else {
+            setMode('view');
+        }
+    };
+
+    const undoLastPoint = () => {
+        setWallPoints(prev => prev.slice(0, -1));
+    };
+
+    const clearMask = () => {
+        if (confirm('Deseja limpar o recorte atual?')) {
+            setWallPoints([]);
+        }
+    };
+
     // Derived state for the selected paper
     const selectedPaperData = papers.find(p => p.id === selectedPaper);
 
@@ -132,7 +164,47 @@ export default function SimuladorPage() {
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 lg:p-6">
-                    <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden relative">
+                    {/* Toolbar */}
+                    {bgImage && (
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={toggleMaskingMode}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${mode === 'masking'
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                                        }`}
+                                >
+                                    {mode === 'masking' ? '✅ Concluir Recorte' : '✂️ Recortar Parede'}
+                                </button>
+                                {mode === 'masking' && (
+                                    <>
+                                        <button
+                                            onClick={undoLastPoint}
+                                            className="px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            title="Desfazer último ponto"
+                                        >
+                                            ↩ Desfazer
+                                        </button>
+                                        <button
+                                            onClick={clearMask}
+                                            className="px-3 py-2 bg-white dark:bg-gray-800 text-red-600 border border-red-200 dark:border-red-900/30 rounded-lg text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                            title="Limpar tudo"
+                                        >
+                                            🗑️ Limpar
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+                                {mode === 'masking'
+                                    ? 'Clique nos cantos da parede para definir a área.'
+                                    : 'Arraste o divisor < > para comparar.'}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden relative cursor-crosshair">
                         {!bgImage ? (
                             <ImageUploader onImageSelect={handleImageSelect} />
                         ) : (
@@ -142,10 +214,10 @@ export default function SimuladorPage() {
                                 opacity={opacity}
                                 scale={scale}
                                 mode={mode}
+                                wallPoints={wallPoints}
+                                onStageClick={handleStageClick}
+                                // V3 Props (unused for now but kept for compatibility if needed)
                                 walls={walls}
-                                selectedWallId={selectedWallId}
-                                onWallsChange={setWalls}
-                                onSelectWall={setSelectedWallId}
                             />
                         )}
                     </div>
