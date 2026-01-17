@@ -279,7 +279,69 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
 
             {/* Layer 3: UI Overlays (Top) */}
             <Layer>
-                {/* ... (Slider UI remains same) ... */}
+                {/* Slider UI (Visible in View Mode) */}
+                {mode === 'view' && patternUrl && (
+                    <Group
+                        x={sliderX}
+                        draggable
+                        dragBoundFunc={(pos) => ({ x: Math.max(0, Math.min(pos.x, dimensions.width)), y: 0 })}
+                        onDragMove={(e) => setSliderX(e.target.x())}
+                        onMouseEnter={(e) => {
+                            const container = e.target.getStage()?.container();
+                            if (container) container.style.cursor = 'ew-resize';
+                        }}
+                        onMouseLeave={(e) => {
+                            const container = e.target.getStage()?.container();
+                            if (container) container.style.cursor = 'default';
+                        }}
+                    >
+                        <Line
+                            points={[0, 0, 0, dimensions.height]}
+                            stroke="white"
+                            strokeWidth={2}
+                            shadowColor="black"
+                            shadowBlur={5}
+                            shadowOpacity={0.5}
+                        />
+                        <Circle
+                            y={dimensions.height / 2}
+                            radius={15}
+                            fill="white"
+                            shadowColor="black"
+                            shadowBlur={5}
+                            shadowOpacity={0.3}
+                        />
+                        <KonvaText
+                            y={dimensions.height / 2 - 5}
+                            x={-5}
+                            text="< >"
+                            fontSize={10}
+                            fontStyle="bold"
+                            fill="#333"
+                        />
+                        {/* Labels for Before/After */}
+                        <Group y={20}>
+                            <KonvaText
+                                x={-60}
+                                text="ORIGINAL"
+                                fill="white"
+                                fontSize={12}
+                                fontStyle="bold"
+                                shadowColor="black"
+                                shadowBlur={2}
+                            />
+                            <KonvaText
+                                x={10}
+                                text="SIMULAÇÃO"
+                                fill="white"
+                                fontSize={12}
+                                fontStyle="bold"
+                                shadowColor="black"
+                                shadowBlur={2}
+                            />
+                        </Group>
+                    </Group>
+                )}
 
                 {/* Brush Cursor Preview */}
                 {mode === 'masking' && cursorPos && (activeTool === 'brush-add' || activeTool === 'brush-remove') && (
