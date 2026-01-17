@@ -99,6 +99,16 @@ export default function SimuladorPage() {
                                 <div className="flex gap-4 items-center flex-wrap">
                                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sua Simulação</h2>
 
+                                    {SHOW_V2 && mode === 'view' && (
+                                        <button
+                                            onClick={handleAutoDetect}
+                                            disabled={isDetecting}
+                                            className={`text-sm bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 transition-colors flex items-center gap-2 ${isDetecting ? 'opacity-50 cursor-wait' : ''}`}
+                                        >
+                                            {isDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : '✨ V2 (IA)'}
+                                        </button>
+                                    )}
+
                                     {mode === 'view' ? (
                                         <button
                                             onClick={() => setMode('masking')}
@@ -107,13 +117,13 @@ export default function SimuladorPage() {
                                             ✂ Ajustar Área
                                         </button>
                                     ) : (
-                                        <div className="flex gap-2">
-                                            <span className="text-sm text-blue-600 font-medium animate-pulse">
-                                                Arraste os cantos para definir a parede
+                                        <div className="flex gap-2 items-center">
+                                            <span className="text-sm text-blue-600 font-medium animate-pulse hidden sm:inline">
+                                                {autoMaskRect ? "Área detectada! Ajuste se necessário." : "Arraste os cantos da área..."}
                                             </span>
                                             <button
                                                 onClick={() => setMode('view')}
-                                                className="text-sm bg-green-600 text-white px-3 py-1 rounded"
+                                                className="text-sm bg-green-600 text-white px-3 py-1 rounded shadow-sm hover:bg-green-700"
                                             >
                                                 Pronto
                                             </button>
@@ -168,11 +178,12 @@ export default function SimuladorPage() {
                                 )}
                                 <CanvasStage
                                     bgImageUrl={bgImage}
-                                    patternUrl={selectedPaperData?.pattern || null}
+                                    patternUrl={selectedPaperData?.imagem_url || null}
                                     opacity={opacity}
                                     scale={scale}
                                     mode={mode}
-                                    wallPoints={wallPoints}
+                                    wallPoints={wallPoints} // Legacy
+                                    validMaskRect={autoMaskRect} // NEW V2 Prop
                                     onStageClick={handleStageClick}
                                 />
                             </div>
