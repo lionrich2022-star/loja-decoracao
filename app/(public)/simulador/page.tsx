@@ -113,7 +113,7 @@ export default function SimuladorPage() {
 
                             <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 <div className="lg:col-span-2">
-                                    <h3 className="font-medium mb-4 flex items-center justify-between">
+                                    <h3 className="font-medium mb-4 flex items-center justify-between text-gray-900">
                                         Escolha o Papel de Parede
                                         <span className="text-xs font-normal text-gray-500">{MOCK_PAPERS.length} opções disponíveis</span>
                                     </h3>
