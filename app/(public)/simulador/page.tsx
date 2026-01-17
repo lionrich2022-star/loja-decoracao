@@ -46,6 +46,22 @@ export default function SimuladorPage() {
     const [isDetecting, setIsDetecting] = useState(false);
 
     useEffect(() => {
+        // Track visit
+        const trackVisit = async () => {
+            try {
+                // Try RPC first (atomic)
+                const { error } = await supabase.rpc('increment_visit', { path_arg: '/simulador' });
+                if (error) {
+                    console.error('Error tracking visit:', error);
+                }
+            } catch (e) {
+                console.error('Visit tracking exception:', e);
+            }
+        };
+        trackVisit();
+    }, []);
+
+    useEffect(() => {
         async function fetchPapers() {
             try {
                 const { data, error } = await supabase
@@ -55,9 +71,16 @@ export default function SimuladorPage() {
 
                 if (error) {
                     console.error('Supabase error fetching papers:', error);
-                    // If error, maybe empty list but stop loading
                 }
-                setPapers(data || []);
+
+                // Manually added papers for immediate availability
+                const manualPapers = [
+                    { id: 'nou-1', nome: 'Papel Infantil Borboletas', imagem_url: '/papeis/papel_infantil.png', preco_m2: 59.90 },
+                    { id: 'nou-2', nome: 'Cimento Queimado', imagem_url: '/papeis/cimento_queimado.png', preco_m2: 45.00 },
+                    { id: 'nou-3', nome: 'Pedra Natural', imagem_url: '/papeis/pedra_natural.png', preco_m2: 89.90 },
+                ];
+
+                setPapers([...manualPapers, ...(data || [])]);
             } catch (error) {
                 console.error('Unexpected error fetching papers:', error);
             } finally {

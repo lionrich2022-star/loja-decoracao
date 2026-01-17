@@ -1,8 +1,27 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Scroll, FileText, TrendingUp, Users } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminDashboard() {
+    const [visitCount, setVisitCount] = useState<number | null>(null);
+
+    useEffect(() => {
+        async function fetchStats() {
+            const { data, error } = await supabase
+                .from('analytics')
+                .select('visit_count')
+                .eq('page_path', '/simulador')
+                .single();
+
+            if (data) {
+                setVisitCount(data.visit_count);
+            }
+        }
+        fetchStats();
+    }, []);
+
     return (
         <div>
             <div className="mb-8">
@@ -27,9 +46,9 @@ export default function AdminDashboard() {
                 />
                 <StatsCard
                     title="Visitas (Simulador)"
-                    value="156"
+                    value={visitCount !== null ? visitCount : '...'}
                     icon={Users}
-                    trend="+12%"
+                    trend="Ao vivo"
                     color="green"
                 />
                 <StatsCard
@@ -42,7 +61,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div className="bg-slate-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h2 className="font-serif text-lg font-bold mb-4 text-gray-900 dark:text-white">Atalhos Rápidos</h2>
                     <div className="space-y-3">
                         <LinkType href="/admin/papeis" title="Gerenciar Catálogo" desc="Adicionar ou editar papéis de parede." />
@@ -67,12 +86,12 @@ export default function AdminDashboard() {
 
 function StatsCard({ title, value, icon: Icon, trend, color }: any) {
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-slate-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-lg bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400`}>
+                <div className={`p-3 rounded-lg bg-${color}-100 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400`}>
                     <Icon size={20} />
                 </div>
-                <span className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                <span className="text-xs font-medium bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full border border-gray-100 dark:border-gray-600">
                     {trend}
                 </span>
             </div>

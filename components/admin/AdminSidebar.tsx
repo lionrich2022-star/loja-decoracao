@@ -67,7 +67,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Suporte</p>
                     <div className="flex items-center gap-2 text-sm text-gray-300">
                         <Headphones size={14} className="text-gold-500" />
-                        <span>(11) 99999-9999</span>
+                        <span>(38) 98425-7511</span>
                     </div>
                 </div>
 
