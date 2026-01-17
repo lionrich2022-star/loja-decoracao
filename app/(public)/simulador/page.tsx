@@ -6,8 +6,9 @@ import PublicHeader from '@/components/layout/PublicHeader';
 import ImageUploader from '@/components/simulator/ImageUploader';
 import QuoteModal from '@/components/simulator/QuoteModal';
 import WallList from '@/components/simulator/WallList';
+import SimulatorSettingsModal from '@/components/simulator/SimulatorSettingsModal';
 import { supabase } from '@/lib/supabase'; // Import supabase
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wand2, Settings } from 'lucide-react';
 import Footer from '@/components/layout/Footer';
 
 // Import Konva Stage dynamically to avoid SSR issues
@@ -21,10 +22,14 @@ import { SIMULATOR_CONFIG, WallData } from '@/components/simulator/SimulatorConf
 
 
 export default function SimuladorPage() {
+    // Runtime Config State (initialized from default config)
+    const [config, setConfig] = useState(SIMULATOR_CONFIG);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
     const [bgImage, setBgImage] = useState<string | null>(null);
     const [selectedPaper, setSelectedPaper] = useState<string | null>(null);
-    const [opacity, setOpacity] = useState(SIMULATOR_CONFIG.defaultOpacity);
-    const [scale, setScale] = useState(SIMULATOR_CONFIG.defaultScale);
+    const [opacity, setOpacity] = useState(config.defaultOpacity);
+    const [scale, setScale] = useState(config.defaultScale);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -78,7 +83,7 @@ export default function SimuladorPage() {
 
         const newWalls: WallData[] = [];
 
-        if (SIMULATOR_CONFIG.enableMultiWall) {
+        if (config.enableMultiWall) {
             // Simulate 2 Walls detected (Polygons)
             newWalls.push({
                 id: 'wall-auto-1',
@@ -158,7 +163,7 @@ export default function SimuladorPage() {
 
             // If we have a selected wall (V3), update it immediately in the list too?
             // Or only on "Confirm"? Let's update immediately for responsiveness.
-            if (SIMULATOR_CONFIG.enableMultiWall && selectedWallId) {
+            if (config.enableMultiWall && selectedWallId) {
                 setWalls(prev => prev.map(w =>
                     w.id === selectedWallId ? { ...w, points: newPoints } : w
                 ));
@@ -184,7 +189,7 @@ export default function SimuladorPage() {
     const undoLastPoint = () => {
         const newPoints = wallPoints.slice(0, -1);
         setWallPoints(newPoints);
-        if (SIMULATOR_CONFIG.enableMultiWall && selectedWallId) {
+        if (config.enableMultiWall && selectedWallId) {
             setWalls(prev => prev.map(w =>
                 w.id === selectedWallId ? { ...w, points: newPoints } : w
             ));
@@ -194,7 +199,7 @@ export default function SimuladorPage() {
     const clearMask = () => {
         if (confirm('Deseja limpar o recorte atual?')) {
             setWallPoints([]);
-            if (SIMULATOR_CONFIG.enableMultiWall && selectedWallId) {
+            if (config.enableMultiWall && selectedWallId) {
                 setWalls(prev => prev.map(w =>
                     w.id === selectedWallId ? { ...w, points: [] } : w
                 ));
@@ -227,6 +232,19 @@ export default function SimuladorPage() {
                     {bgImage && (
                         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center gap-2">
+                                {/* V2: Auto Detect Button */}
+                                {config.enableV2 && (
+                                    <button
+                                        onClick={handleAutoDetect}
+                                        disabled={isDetecting}
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-wait"
+                                        title="Detectar paredes automaticamente com IA"
+                                    >
+                                        {isDetecting ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
+                                        {isDetecting ? 'Detectando...' : 'Auto IA'}
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={toggleMaskingMode}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${mode === 'masking'
@@ -234,7 +252,7 @@ export default function SimuladorPage() {
                                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
                                         }`}
                                 >
-                                    {mode === 'masking' ? '✅ Concluir Recorte' : '✂️ Recortar Parede'}
+                                    {mode === 'masking' ? '✅ Concluir' : '✂️ Recortar'}
                                 </button>
                                 {mode === 'masking' && (
                                     <>
@@ -255,10 +273,22 @@ export default function SimuladorPage() {
                                     </>
                                 )}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
-                                {mode === 'masking'
-                                    ? 'Clique nos cantos da parede para definir a área.'
-                                    : 'Arraste o divisor < > para comparar.'}
+
+                            <div className="flex items-center gap-4">
+                                <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+                                    {mode === 'masking'
+                                        ? 'Clique nos cantos da parede.'
+                                        : 'Arraste < > para comparar.'}
+                                </div>
+
+                                {/* Settings Trigger */}
+                                <button
+                                    onClick={() => setIsSettingsOpen(true)}
+                                    className="p-2 text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                    title="Configurações do Simulador"
+                                >
+                                    <Settings className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                     )}
@@ -388,8 +418,8 @@ export default function SimuladorPage() {
                                 </p>
                             </div>
 
-                            {/* V3: Wall List (Only if MultiWall enabled) */}
-                            {SIMULATOR_CONFIG.enableMultiWall && walls.length > 0 && (
+                            {/* V3: Wall List (Only if MultiWall enabled in Runtime Config) */}
+                            {config.enableMultiWall && walls.length > 0 && (
                                 <WallList
                                     walls={walls}
                                     selectedWallId={selectedWallId}
@@ -420,6 +450,13 @@ export default function SimuladorPage() {
                     totalPrice: totalPrice
                 }}
                 imageBlob={bgImage} // Passing the BLOB url
+            />
+            {/* Runtime Settings Modal */}
+            <SimulatorSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                config={config}
+                onConfigChange={setConfig}
             />
             <Footer />
         </div>
