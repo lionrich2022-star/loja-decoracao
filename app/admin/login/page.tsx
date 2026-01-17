@@ -25,7 +25,7 @@ export default function LoginPage() {
             if (error) {
                 setError('Erro ao entrar. Verifique e-mail e senha.');
             } else {
-                router.push('/dashboard'); // Redireciona para o Dashboard (raiz do grupo admin)
+                router.push('/admin/dashboard'); // Redireciona para o Dashboard (raiz do grupo admin)
             }
         } catch (err) {
             setError('Ocorreu um erro inesperado.');
@@ -53,7 +53,7 @@ export default function LoginPage() {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                             placeholder="admin@loja.com"
                         />
                     </div>
@@ -64,7 +64,7 @@ export default function LoginPage() {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                             placeholder="******"
                         />
                     </div>

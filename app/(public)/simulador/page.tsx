@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import PublicHeader from '@/components/layout/PublicHeader';
 import ImageUploader from '@/components/simulator/ImageUploader';
+import QuoteModal from '@/components/simulator/QuoteModal';
 import { MOCK_PAPERS } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 
@@ -19,6 +20,8 @@ export default function SimuladorPage() {
     const [opacity, setOpacity] = useState(0.8);
     const [scale, setScale] = useState(0.5);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleImageSelect = (file: File) => {
         const url = URL.createObjectURL(file);
@@ -124,9 +127,9 @@ export default function SimuladorPage() {
                             ${selectedPaper === paper.id ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200 hover:border-gray-300'}
                         `}
                                             >
-                                                <img src={paper.thumbnail} alt={paper.name} className="w-full aspect-square object-cover" />
+                                                <img src={paper.thumbnail} alt={paper.name} referrerPolicy="no-referrer" className="w-full aspect-square object-cover" />
                                                 <div className={`absolute inset-0 transition-colors ${selectedPaper === paper.id ? 'bg-blue-500/10' : 'bg-black/0 group-hover:bg-black/5'}`} />
-                                                <div className="p-2 text-xs font-medium truncate bg-white border-t border-gray-100">
+                                                <div className="p-2 text-xs font-medium truncate bg-white border-t border-gray-100 text-gray-900">
                                                     {paper.name}
                                                     <div className="text-gray-500 font-normal">R$ {paper.price_m2.toFixed(2)}/m²</div>
                                                 </div>
@@ -146,7 +149,7 @@ export default function SimuladorPage() {
                                                         type="number"
                                                         onChange={(e) => setDimensions(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
                                                         step="0.01"
-                                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none pl-3"
+                                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none pl-3 text-gray-900 bg-white"
                                                         placeholder="0.00"
                                                     />
                                                     <span className="absolute right-3 top-2 text-gray-400 text-sm">m</span>
@@ -159,7 +162,7 @@ export default function SimuladorPage() {
                                                         type="number"
                                                         onChange={(e) => setDimensions(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
                                                         step="0.01"
-                                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none pl-3"
+                                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none pl-3 text-gray-900 bg-white"
                                                         placeholder="0.00"
                                                     />
                                                     <span className="absolute right-3 top-2 text-gray-400 text-sm">m</span>
@@ -193,6 +196,7 @@ export default function SimuladorPage() {
 
                                         <button
                                             disabled={!totalPrice || totalPrice === 0}
+                                            onClick={() => setIsModalOpen(true)}
                                             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-sm"
                                         >
                                             SOLICITAR ORÇAMENTO
@@ -207,6 +211,19 @@ export default function SimuladorPage() {
                     )}
                 </div>
             </main>
+
+            <QuoteModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                summary={{
+                    paperId: selectedPaper || undefined,
+                    paperName: selectedPaperData?.name,
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    totalPrice: totalPrice
+                }}
+                imageBlob={bgImage} // Passing the BLOB url (will basically just save string)
+            />
         </div>
     );
 }

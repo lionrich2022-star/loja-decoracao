@@ -1,44 +1,48 @@
 import Link from 'next/link';
 import { ArrowRight, Star, Sparkles, LayoutTemplate } from 'lucide-react';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function Home() {
     return (
         <div className="min-h-screen flex flex-col">
             {/* Header / Nav */}
-            <header className="py-6 px-8 flex justify-between items-center max-w-7xl mx-auto w-full">
+            <header className="py-6 px-8 flex justify-between items-center max-w-7xl mx-auto w-full dark:bg-gray-900 transition-colors">
                 <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-full border border-gold-400 flex items-center justify-center text-gold-700 font-serif font-bold text-xl bg-gold-50">
                         D
                     </div>
-                    <span className="font-serif text-2xl tracking-wide font-bold text-gray-800">
-                        DECORA <span className="text-gold-600 font-light">DESIGN</span>
+                    <span className="font-serif text-2xl tracking-wide font-bold text-gray-800 dark:text-gold-100">
+                        DECORA <span className="text-gold-600 font-light dark:text-gold-400">DESIGN</span>
                     </span>
                 </div>
-                <nav className="gap-8 hidden md:flex text-sm uppercase tracking-widest font-medium text-gray-500">
-                    <Link href="/simulador" className="hover:text-gold-700 transition-colors">Simulador</Link>
-                    <Link href="#" className="hover:text-gold-700 transition-colors">Papéis</Link>
-                    <Link href="#" className="hover:text-gold-700 transition-colors">Projetos</Link>
-                    <Link href="/dashboard" className="hover:text-gold-700 transition-colors">Lojista</Link>
+                <nav className="hidden md:flex items-center gap-8 text-sm uppercase tracking-widest font-medium text-gray-500 dark:text-gray-400">
+                    <Link href="/simulador" className="hover:text-gold-700 dark:hover:text-gold-300 transition-colors">Simulador</Link>
+                    <Link href="#" className="hover:text-gold-700 dark:hover:text-gold-300 transition-colors">Papéis</Link>
+                    <Link href="#" className="hover:text-gold-700 dark:hover:text-gold-300 transition-colors">Projetos</Link>
+                    <Link href="/admin/dashboard" className="hover:text-gold-700 dark:hover:text-gold-300 transition-colors">Lojista</Link>
+                    <div className="pl-4 border-l border-gray-200 dark:border-gray-700">
+                        <ThemeToggle />
+                    </div>
                 </nav>
             </header>
 
             {/* Hero Section */}
             <main className="flex-1">
-                <section className="relative h-[85vh] flex items-center justify-center overflow-hidden bg-cream-100">
+                <section className="relative h-[85vh] flex items-center justify-center overflow-hidden bg-cream-100 dark:bg-gray-900 transition-colors">
                     {/* Background Decorative Elements */}
                     <div className="absolute top-0 right-0 w-[50vw] h-full bg-[#f0eadd] opacity-40 rounded-l-[100px] -z-10 translate-x-20"></div>
 
                     <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                         <div className="space-y-8 animate-in slide-in-from-left duration-1000">
-                            <span className="inline-block py-1 px-3 border border-gold-300 rounded-full text-xs font-bold tracking-[0.2em] text-gold-800 uppercase bg-gold-50">
+                            <span className="inline-block py-1 px-3 border border-gold-300 rounded-full text-xs font-bold tracking-[0.2em] text-gold-800 dark:text-gold-300 uppercase bg-gold-50 dark:bg-gold-900/20">
                                 Interiores & Decoração
                             </span>
 
-                            <h1 className="text-5xl md:text-7xl font-serif text-gray-900 leading-[1.1]">
-                                Transforme seu ambiente <span className="italic text-gold-600">sem reforma</span>.
+                            <h1 className="text-5xl md:text-7xl font-serif text-gray-900 dark:text-white leading-[1.1]">
+                                Transforme seu ambiente <span className="italic text-gold-600 dark:text-gold-400">sem reforma</span>.
                             </h1>
 
-                            <p className="text-lg text-gray-600 leading-relaxed max-w-lg font-light">
+                            <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg font-light">
                                 Visualize como ficará sua parede antes de comprar.
                                 Tecnologia exclusiva Decora Design para você testar papéis, texturas e cores em segundos.
                             </p>
@@ -46,15 +50,15 @@ export default function Home() {
                             <div className="flex flex-col sm:flex-row gap-4 pt-4">
                                 <Link
                                     href="/simulador"
-                                    className="group bg-gray-900 text-white px-8 py-4 rounded-full flex items-center justify-center gap-3 hover:bg-gold-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+                                    className="group bg-gray-900 dark:bg-gold-600 text-white px-8 py-4 rounded-full flex items-center justify-center gap-3 hover:bg-gold-600 dark:hover:bg-gold-700 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
                                 >
-                                    <Sparkles size={18} className="text-gold-300" />
+                                    <Sparkles size={18} className="text-gold-300 dark:text-white" />
                                     <span className="font-medium tracking-wide">TESTAR SIMULADOR</span>
                                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                 </Link>
                                 <Link
                                     href="#"
-                                    className="px-8 py-4 rounded-full border border-gray-300 text-gray-600 hover:border-gold-500 hover:text-gold-700 transition-colors flex items-center justify-center"
+                                    className="px-8 py-4 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gold-500 hover:text-gold-700 dark:hover:text-gold-400 transition-colors flex items-center justify-center"
                                 >
                                     Ver Catálogo
                                 </Link>
@@ -89,7 +93,7 @@ export default function Home() {
                 </section>
 
                 {/* Features Section */}
-                <section className="py-24 bg-white">
+                <section className="py-24 bg-white dark:bg-gray-800 transition-colors">
                     <div className="max-w-7xl mx-auto px-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                             <FeatureCard
@@ -117,12 +121,12 @@ export default function Home() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
     return (
-        <div className="flex flex-col items-center text-center p-6 space-y-4 hover:bg-cream-50 rounded-2xl transition-colors duration-300">
-            <div className="w-16 h-16 bg-cream-100 rounded-full flex items-center justify-center mb-2">
+        <div className="flex flex-col items-center text-center p-6 space-y-4 hover:bg-cream-50 dark:hover:bg-gray-700 rounded-2xl transition-colors duration-300">
+            <div className="w-16 h-16 bg-cream-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 {icon}
             </div>
-            <h3 className="text-xl font-serif font-bold text-gray-800">{title}</h3>
-            <p className="text-gray-500 leading-relaxed font-light">{description}</p>
+            <h3 className="text-xl font-serif font-bold text-gray-800 dark:text-white">{title}</h3>
+            <p className="text-gray-500 dark:text-gray-300 leading-relaxed font-light">{description}</p>
         </div>
     );
 }

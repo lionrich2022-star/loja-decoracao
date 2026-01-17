@@ -17,7 +17,7 @@ export default function AdminLayout({
 
     useEffect(() => {
         // Se estiver na página de login, não precisa verificar
-        if (pathname === '/login') {
+        if (pathname === '/admin/login') {
             setAuthorized(true);
             setLoading(false);
             return;
@@ -30,7 +30,7 @@ export default function AdminLayout({
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
-            router.push('/login');
+            router.push('/admin/login');
         } else {
             setAuthorized(true);
         }
@@ -39,7 +39,7 @@ export default function AdminLayout({
 
     async function handleLogout() {
         await supabase.auth.signOut();
-        router.push('/login');
+        router.push('/admin/login');
     }
 
     if (loading) {
@@ -51,7 +51,7 @@ export default function AdminLayout({
     }
 
     // Se for página de login, renderiza "puro" (sem header)
-    if (pathname === '/login') {
+    if (pathname === '/admin/login') {
         return <>{children}</>;
     }
 
@@ -66,9 +66,9 @@ export default function AdminLayout({
                                 Loja Decor <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Admin</span>
                             </a>
                             <nav className="hidden md:flex gap-4 text-sm font-medium text-gray-600">
-                                <a href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</a>
-                                <a href="/papeis" className="hover:text-blue-600 transition-colors">Papéis</a>
-                                <a href="/orcamentos" className="hover:text-blue-600 transition-colors">Orçamentos</a>
+                                <a href="/admin/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</a>
+                                <a href="/admin/papeis" className="hover:text-blue-600 transition-colors">Papéis</a>
+                                <a href="/admin/orcamentos" className="hover:text-blue-600 transition-colors">Orçamentos</a>
                             </nav>
                         </div>
 
