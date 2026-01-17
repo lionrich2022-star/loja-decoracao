@@ -83,7 +83,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
                     <div className="pt-2 border-t border-gray-800 text-center">
                         <a href="https://www.kryonsystems.com.br/" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
                             <span className="text-[10px] text-gray-600 group-hover:text-gold-500 transition-colors uppercase tracking-widest">Desenvolvido por</span>
-                            <img src="/kryon-logo.png" alt="Kryon Systems" className="h-24 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
+                            <img src="/kryon-logo.png" alt="Kryon Systems" className="h-72 max-w-[80%] w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
                         </a>
                     </div>
                 </div>

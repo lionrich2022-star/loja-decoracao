@@ -288,6 +288,7 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
 
             {/* Layer 2: Wall Patterns (Middle) - Contains the masking magic */}
             <Layer
+                globalCompositeOperation="multiply"
                 // Slider Clipping at Layer level for the entire "After" view
                 clipFunc={mode === 'view' ? (ctx) => {
                     // With zooming, the clipRect is tricky.
@@ -415,7 +416,70 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                 )}
             </Layer>
 
-            {/* Layer 3: UI Overlays (Top) */}
+            {/* Layer 3: Interactive World UI (Handles, Cursor) - SCALED & PANNED */}
+            <Layer
+                scaleX={stageScale}
+                scaleY={stageScale}
+                x={stagePos.x}
+                y={stagePos.y}
+            >
+                {/* Brush Cursor Preview */}
+                {mode === 'masking' && cursorPos && (activeTool === 'brush-add' || activeTool === 'brush-remove') && (
+                    <Circle
+                        x={cursorPos.x}
+                        y={cursorPos.y}
+                        radius={brushSize / 2}
+                        stroke={activeTool === 'brush-remove' ? 'red' : '#22c55e'} // Red or Green-500
+                        strokeWidth={2 / stageScale} // Keep stroke constant width visually? Or scale? 2/scale keeps it thin.
+                        fill={activeTool === 'brush-remove' ? 'rgba(255, 0, 0, 0.2)' : 'rgba(34, 197, 94, 0.2)'}
+                        listening={false}
+                    />
+                )}
+
+                {/* Masking UI (Visible only when masking) */}
+                {mode === 'masking' && (
+                    <>
+                        <Line
+                            points={wallPoints.flatMap(p => [p.x, p.y])}
+                            closed={wallPoints.length > 2}
+                            stroke="#00A3FF"
+                            strokeWidth={2 / stageScale} // Constant visual width
+                            dash={[8 / stageScale, 4 / stageScale]} // Constant visual dash
+                        />
+                        {wallPoints.map((point, i) => (
+                            <Circle
+                                key={i}
+                                x={point.x}
+                                y={point.y}
+                                radius={6 / stageScale} // Constant visual radius
+                                fill="white"
+                                stroke="#00A3FF"
+                                strokeWidth={2 / stageScale}
+                                draggable
+                                onDragMove={(e) => {
+                                    // Pointer is Screen Space, but e.target.x() is Layer Space (Local).
+                                    // Since Layer is scaled, x() returns local coord. Perfect.
+                                    const newPoints = [...wallPoints];
+                                    newPoints[i] = { x: e.target.x(), y: e.target.y() };
+                                    if (onPointsChange) {
+                                        onPointsChange(newPoints);
+                                    }
+                                }}
+                                onMouseEnter={(e) => {
+                                    const container = e.target.getStage()?.container();
+                                    if (container) container.style.cursor = 'move';
+                                }}
+                                onMouseLeave={(e) => {
+                                    const container = e.target.getStage()?.container();
+                                    if (container) container.style.cursor = 'crosshair';
+                                }}
+                            />
+                        ))}
+                    </>
+                )}
+            </Layer>
+
+            {/* Layer 4: Static Screen UI (Slider) - NO SCALE */}
             <Layer>
                 {/* Slider UI (Visible in View Mode) */}
                 {mode === 'view' && patternUrl && (
@@ -460,80 +524,25 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                         {/* Labels for Before/After */}
                         <Group y={20}>
                             <KonvaText
-                                x={-60}
+                                x={-80}
                                 text="ORIGINAL"
                                 fill="white"
-                                fontSize={12}
+                                fontSize={16}
                                 fontStyle="bold"
                                 shadowColor="black"
-                                shadowBlur={2}
+                                shadowBlur={4}
                             />
                             <KonvaText
-                                x={10}
+                                x={15}
                                 text="SIMULAÇÃO"
                                 fill="white"
-                                fontSize={12}
+                                fontSize={16}
                                 fontStyle="bold"
                                 shadowColor="black"
-                                shadowBlur={2}
+                                shadowBlur={4}
                             />
                         </Group>
                     </Group>
-                )}
-
-                {/* Brush Cursor Preview */}
-                {mode === 'masking' && cursorPos && (activeTool === 'brush-add' || activeTool === 'brush-remove') && (
-                    <Circle
-                        x={cursorPos.x}
-                        y={cursorPos.y}
-                        radius={brushSize / 2}
-                        stroke={activeTool === 'brush-remove' ? 'red' : '#22c55e'} // Red or Green-500
-                        strokeWidth={2}
-                        fill={activeTool === 'brush-remove' ? 'rgba(255, 0, 0, 0.2)' : 'rgba(34, 197, 94, 0.2)'} // Transparent fill
-                        listening={false} // Pass events through to the stage
-                    />
-                )}
-
-                {/* Masking UI (Visible only when masking) */}
-                {mode === 'masking' && (
-                    <>
-                        <Line
-                            points={wallPoints.flatMap(p => [p.x, p.y])}
-                            closed={wallPoints.length > 2}
-                            stroke="#ef4444"
-                            strokeWidth={2}
-                            dash={[10, 5]}
-                        />
-                        {wallPoints.map((point, i) => (
-                            <Circle
-                                key={i}
-                                x={point.x}
-                                y={point.y}
-                                radius={8} // Slightly larger hit area
-                                fill="white"
-                                stroke="#ef4444"
-                                strokeWidth={2}
-                                draggable
-                                onDragMove={(e) => {
-                                    const newPoints = [...wallPoints];
-                                    newPoints[i] = { x: e.target.x(), y: e.target.y() };
-                                    // Optimistic update if needed, but usually we rely on parent callback
-                                    // For smooth dragging in React Konva, usually better to update state onDragMove
-                                    if (onPointsChange) {
-                                        onPointsChange(newPoints);
-                                    }
-                                }}
-                                onMouseEnter={(e) => {
-                                    const container = e.target.getStage()?.container();
-                                    if (container) container.style.cursor = 'move';
-                                }}
-                                onMouseLeave={(e) => {
-                                    const container = e.target.getStage()?.container();
-                                    if (container) container.style.cursor = 'crosshair'; // Back to tool cursor
-                                }}
-                            />
-                        ))}
-                    </>
                 )}
             </Layer>
         </Stage>

@@ -95,54 +95,28 @@ export default function SimuladorPage() {
     // V2/V3 AI Detection Logic
     const handleAutoDetect = async () => {
         setIsDetecting(true);
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+            const response = await fetch('/api/detect-wall');
+            if (!response.ok) throw new Error('Falha na detecção IA');
+            const data = await response.json();
 
-        const newWalls: WallData[] = [];
+            // Use 'walls' from API if available, otherwise fallback/adapt
+            const detectedWalls: WallData[] = data.walls || [];
 
-        if (config.enableMultiWall) {
-            // Simulate 2 Walls detected (Polygons)
-            newWalls.push({
-                id: 'wall-auto-1',
-                name: 'Parede Esquerda (IA)',
-                points: [
-                    { x: 50, y: 100 },
-                    { x: 350, y: 100 },
-                    { x: 350, y: 500 },
-                    { x: 50, y: 500 }
-                ]
-            });
-            newWalls.push({
-                id: 'wall-auto-2',
-                name: 'Parede Direita (IA)',
-                points: [
-                    { x: 400, y: 100 },
-                    { x: 750, y: 100 },
-                    { x: 750, y: 500 },
-                    { x: 400, y: 500 }
-                ]
-            });
-        } else {
-            // Single Wall V2
-            newWalls.push({
-                id: 'wall-auto-1',
-                name: 'Parede (IA)',
-                points: [
-                    { x: 50, y: 50 },
-                    { x: 750, y: 50 },
-                    { x: 750, y: 550 },
-                    { x: 50, y: 550 }
-                ]
-            });
+            if (detectedWalls.length > 0) {
+                setWalls(detectedWalls);
+                setSelectedWallId(detectedWalls[0].id);
+                setWallPoints(detectedWalls[0].points); // Sync edit state
+                setMode('masking');
+            } else {
+                alert('Nenhuma parede detectada pela IA.');
+            }
+        } catch (error) {
+            console.error("Erro na detecção:", error);
+            alert("Erro ao conectar com servidor de IA.");
+        } finally {
+            setIsDetecting(false);
         }
-
-        setWalls(newWalls);
-        if (newWalls.length > 0) {
-            setSelectedWallId(newWalls[0].id);
-            setWallPoints(newWalls[0].points); // Sync edit state
-        }
-        setIsDetecting(false);
-        setMode('masking');
     };
 
     // Masking State
