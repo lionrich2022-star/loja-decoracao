@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import PublicHeader from '@/components/layout/PublicHeader';
 import ImageUploader from '@/components/simulator/ImageUploader';
 import QuoteModal from '@/components/simulator/QuoteModal';
-import { MOCK_PAPERS } from '@/lib/constants';
+import { supabase } from '@/lib/supabase'; // Import supabase
 import { Loader2 } from 'lucide-react';
 
 // Import Konva Stage dynamically to avoid SSR issues
@@ -20,12 +20,51 @@ export default function SimuladorPage() {
     const [opacity, setOpacity] = useState(0.8);
     const [scale, setScale] = useState(0.5);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // State for real papers
+    const [papers, setPapers] = useState<any[]>([]);
+    const [loadingPapers, setLoadingPapers] = useState(true);
+
+    const [wallPoints, setWallPoints] = useState<{ x: number; y: number }[]>([]);
+    const [mode, setMode] = useState<'view' | 'masking'>('view');
+
+    useEffect(() => {
+        fetchPapers();
+    }, []);
+
+    const fetchPapers = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('papeis')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (data) setPapers(data);
+        } catch (error) {
+            console.error('Error fetching papers:', error);
+        } finally {
+            setLoadingPapers(false);
+        }
+    };
+
+    const [wallPoints, setWallPoints] = useState<{ x: number; y: number }[]>([]);
+    const [mode, setMode] = useState<'view' | 'masking'>('view');
 
     const handleImageSelect = (file: File) => {
         const url = URL.createObjectURL(file);
         setBgImage(url);
+        setWallPoints([]); // Reset points on new image
+    };
+
+    const handleStageClick = (e: any) => {
+        if (mode !== 'masking') return;
+        const stage = e.target.getStage();
+        const pointer = stage.getPointerPosition();
+        if (pointer) {
+            setWallPoints([...wallPoints, pointer]);
+        }
     };
 
     const selectedPaperData = MOCK_PAPERS.find(p => p.id === selectedPaper);
@@ -55,13 +94,45 @@ export default function SimuladorPage() {
                         <ImageUploader onImageSelect={handleImageSelect} />
                     ) : (
                         <div className="bg-white rounded-xl shadow-lg p-6">
-                            <div className="flex justify-between items-center mb-6">
+                            {/* Toolbar */}
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                                 <div className="flex gap-4 items-center flex-wrap">
-                                    <h2 className="text-xl font-semibold">Sua Simulação</h2>
-                                    {selectedPaper && (
+                                    <h2 className="text-xl font-semibold text-gray-900">Sua Simulação</h2>
+
+                                    {mode === 'view' ? (
+                                        <button
+                                            onClick={() => setMode('masking')}
+                                            className="text-sm bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-gray-800 transition-colors flex items-center gap-2"
+                                        >
+                                            ✂ Recortar Parede
+                                        </button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <span className="text-sm text-blue-600 font-medium animate-pulse">
+                                                Clique nos cantos da parede...
+                                            </span>
+                                            <button
+                                                onClick={() => {
+                                                    setWallPoints([]);
+                                                    setMode('view');
+                                                }}
+                                                className="text-sm text-red-600 border border-red-200 px-2 py-1 rounded"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={() => setMode('view')}
+                                                className="text-sm bg-green-600 text-white px-3 py-1 rounded"
+                                            >
+                                                Concluir
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {selectedPaper && mode === 'view' && (
                                         <div className="flex gap-4 text-sm bg-gray-100 p-2 rounded-lg">
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <span>Opacidade:</span>
+                                                <span className="text-gray-700">Opacidade:</span>
                                                 <input
                                                     type="range"
                                                     min="0.1"
@@ -73,7 +144,7 @@ export default function SimuladorPage() {
                                                 />
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <span>Escala:</span>
+                                                <span className="text-gray-700">Escala:</span>
                                                 <input
                                                     type="range"
                                                     min="0.1"
@@ -95,8 +166,9 @@ export default function SimuladorPage() {
                                 </button>
                             </div>
 
+                            {/* Canvas Area */}
                             <div className="bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex justify-center items-center min-h-[400px] relative">
-                                {!selectedPaper && (
+                                {!selectedPaper && wallPoints.length < 3 && mode === 'view' && (
                                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                                         <span className="bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm animate-pulse">
                                             Selecione um papel abaixo para aplicar
@@ -108,6 +180,9 @@ export default function SimuladorPage() {
                                     patternUrl={selectedPaperData?.pattern || null}
                                     opacity={opacity}
                                     scale={scale}
+                                    mode={mode}
+                                    wallPoints={wallPoints}
+                                    onStageClick={handleStageClick}
                                 />
                             </div>
 
