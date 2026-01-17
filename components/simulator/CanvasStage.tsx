@@ -44,7 +44,7 @@ const PatternLayer = ({ patternUrl, width, height, opacity, scale }: any) => {
 
 export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mode, wallPoints, onStageClick }: CanvasStageProps) {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-    const [image] = useImage(bgImageUrl);
+    const [image] = useImage(bgImageUrl || undefined);
     const [sliderX, setSliderX] = useState<number>(400); // Default slider position
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
 
