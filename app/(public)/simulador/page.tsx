@@ -16,12 +16,7 @@ const CanvasStage = dynamic(() => import('@/components/simulator/CanvasStage'), 
 
 import { SIMULATOR_CONFIG, WallData } from '@/components/simulator/SimulatorConfig';
 
-// ...
 
-// In QuoteModal:
-paperName: selectedPaperData?.nome,
-
-// ... (previous imports)
 
 export default function SimuladorPage() {
     const [bgImage, setBgImage] = useState<string | null>(null);
