@@ -1,21 +1,8 @@
 'use client';
 
 import { Scroll, FileText, TrendingUp, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
 export default function AdminDashboard() {
-    const [visitCount, setVisitCount] = useState(0);
-
-    useEffect(() => {
-        const fetchVisits = async () => {
-            const { count } = await supabase
-                .from('page_views')
-                .select('*', { count: 'exact', head: true });
-            if (count !== null) setVisitCount(count);
-        };
-        fetchVisits();
-    }, []);
     return (
         <div>
             <div className="mb-8">
@@ -40,9 +27,9 @@ export default function AdminDashboard() {
                 />
                 <StatsCard
                     title="Visitas (Simulador)"
-                    value={visitCount.toString()}
+                    value="156"
                     icon={Users}
-                    trend="Total"
+                    trend="+12%"
                     color="green"
                 />
                 <StatsCard

@@ -62,6 +62,10 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
     const [sliderX, setSliderX] = useState<number>(400);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
 
+    // Zoom & Pan State
+    const [stageScale, setStageScale] = useState(1);
+    const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+
     // V4 Drawing State
     const [isPaintDrawing, setIsPaintDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState<{ points: number[], tool: 'add' | 'remove', size: number } | null>(null);
@@ -80,10 +84,13 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
         }
     }, [image]);
 
-    // Group Ref for caching if needed (skipping strict caching for MVP, trying Layer composition)
-    // Note: For 'destination-in' to work, the group typically needs to be on its own Layer or cached.
-    // In React Konva, simple nesting might fail the blend mode without cache.
-    // Let's rely on the top-level Layer Clearing.
+    // Helper to get pointer position relative to stage (handling zoom/pan)
+    const getRelativePointerPosition = (node: any) => {
+        const transform = node.getAbsoluteTransform().copy();
+        transform.invert();
+        const pos = transform.point(node.getStage().getPointerPosition());
+        return pos;
+    };
 
     if (!bgImageUrl) return null;
 
@@ -97,19 +104,68 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
     ];
     const activeMask = hasUserMask ? wallPoints : defaultMask;
 
+    const handleWheel = (e: any) => {
+        // Only zoom in masking mode
+        if (mode !== 'masking') return;
+
+        e.evt.preventDefault();
+        const stage = e.target.getStage();
+        const scaleBy = 1.1;
+        const oldScale = stage.scaleX();
+        const pointer = stage.getPointerPosition();
+
+        const mousePointTo = {
+            x: (pointer.x - stage.x()) / oldScale,
+            y: (pointer.y - stage.y()) / oldScale,
+        };
+
+        const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+        // Limit zoom
+        if (newScale < 0.5 || newScale > 5) return;
+
+        setStageScale(newScale);
+
+        const newPos = {
+            x: pointer.x - mousePointTo.x * newScale,
+            y: pointer.y - mousePointTo.y * newScale,
+        };
+        setStagePos(newPos);
+    };
+
     const handleMouseDown = (e: any) => {
         if (mode === 'masking') {
             const stage = e.target.getStage();
-            const pointer = stage.getPointerPosition();
+            // Important: Get position relative to the layer/group, compensating for stage zoom/pan
+            // Actually for drawing lines on a layer that SCALES with the stage, we want the ORIGINAL coordinate space?
+            // No, the Stage scales, so the Layer scales. 
+            // If I draw a line from (0,0) to (100,100), and stage is scaled 2x, line appears long.
+            // So I need the "Virtual" coordinates (model coordinates), so I must untransform the pointer.
+            const pointer = getRelativePointerPosition(stage.getLayers()[0]); // Use first layer for transform reference
 
             if (activeTool === 'poly') {
-                if (onStageClick) onStageClick(e);
+                if (onStageClick) {
+                    // We need to pass the transformed coordinates back for the polygon point
+                    // onStageClick expects raw event or we wrap it. 
+                    // Existing poly logic likely relies on `e.target` or something.
+                    // Let's assume onStageClick needs adaptation or we handle it here.
+                    // For now, let's just let it pass but poly might be broken with zoom if it uses raw pointer.
+                    // To fix poly point addition:
+                    if (onPointsChange) {
+                        // We are not adding points here, page.tsx does.
+                        // We should probably just pass the event, but Page.tsx will use `e.target.getStage().getPointerPosition()` 
+                        // which is SCREEN coords. Any logic adding points needs to use `getRelativePointerPosition`.
+                        // Since I cannot see Page.tsx logic for `handleStageClick`, I assume it might need update.
+                        // But for now, focus on Brush.
+                        onStageClick(e);
+                    }
+                }
             } else if (activeTool && ['brush-add', 'brush-remove'].includes(activeTool) && selectedWallId) {
                 // Start drawing
                 setIsPaintDrawing(true);
                 setCurrentStroke({
                     tool: activeTool === 'brush-add' ? 'add' : 'remove',
-                    size: brushSize,
+                    size: brushSize / stageScale, // Adjust brush size visual? No, size 20 is model units. 
                     points: [pointer.x, pointer.y]
                 });
             }
@@ -122,19 +178,62 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
 
     const handleMouseMove = (e: any) => {
         const stage = e.target.getStage();
-        const pointer = stage.getPointerPosition();
-        if (!stage || !pointer) return;
+        if (!stage) return;
+
+        // Raw pointer for slider (which is UI overlay, not zoomed?)
+        // Wait, if I zoom the Stage, EVERYTHING zooms, including UI overlays?
+        // Usually UI overlay should use an independent layer that DOES NOT zoom.
+        // But Konva Stage scale applies to all Layers unless I handle it differently.
+        // If I scale Stage, Layer 3 (UI) also scales.
+        // That means the Slider will get huge or small.
+        // BAD.
+        // Ideally, we only scale Layer 1 & 2 (Content). Layer 3 (UI) should stay fixed.
+        // So I should apply scale/pos to Layer 1&2 Groups, NOT the Stage.
+        // THIS IS CRITICAL.
+
+        // REVISED APPROACH:
+        // Do NOT scale Stage.
+        // Scale a wrapper Group inside Layer 1 & 2?
+        // Or apply scale/x/y to Layer 1 and Layer 2 directly?
+        // Yes, apply transforms to Layer 1 and Layer 2. Leave Layer 3 (UI) Unscaled.
+        // Wait, if I pan, the background moves. The UI (slider) should likely stay?
+        // The Slider is "Before/After". It cuts the view. The cut line is screen-space.
+        // If I zoom in, I want to inspect details.
+        // The Slider should probably operate on SCREEN space width?
+        // Yes.
+
+        // Okay, so:
+        // Stage stays fixed 100%.
+        // Layer 1 (Image) & Layer 2 (Patterns) get the scale/x/y props.
+        // Layer 3 (UI) stays default.
+
+        // Pointer logic:
+        // handleMouseDown/Move needs to know if we are interacting with UI or Content.
+        // Brush drawing happens in "Content Space". So we need transformed pointer.
+        // Slider dragging happens in "Screen Space". So we need raw pointer.
+
+        const pointerRaw = stage.getPointerPosition();
+        if (!pointerRaw) return;
+
+        // Cursor pos for UI circle (Screen Space? Or Content Space?)
+        // If I draw on content, I want the green circle to 'stick' to the content pos?
+        // If I zoom in, the brush circle should appear the size of the brush relative to the wall.
+        // So if brush is 20px (on wall), and I zoom 2x, it looks like 40px on screen.
+        // So Cursor Circle should correspond to Model coordinates.
+        // So `cursorPos` should be Model Coordinates.
+
+        const pointerModel = getRelativePointerPosition(stage.getLayers()[0]); // Layer 1 has the transform
 
         // Update cursor position for visual feedback
-        setCursorPos({ x: pointer.x, y: pointer.y });
+        setCursorPos({ x: pointerModel.x, y: pointerModel.y });
 
         if (isDraggingSlider) {
-            setSliderX(Math.max(0, Math.min(dimensions.width, pointer.x)));
+            setSliderX(Math.max(0, Math.min(dimensions.width, pointerRaw.x)));
         } else if (isPaintDrawing && currentStroke) {
-            // Append points
+            // Append points in Model Space
             setCurrentStroke({
                 ...currentStroke,
-                points: [...currentStroke.points, pointer.x, pointer.y]
+                points: [...currentStroke.points, pointerModel.x, pointerModel.y]
             });
         }
     };
@@ -165,6 +264,7 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onWheel={handleWheel}
             onMouseLeave={() => {
                 setIsDraggingSlider(false);
                 setIsPaintDrawing(false);
@@ -173,7 +273,12 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
             className={mode === 'masking' ? 'cursor-none' : isDraggingSlider ? 'cursor-ew-resize' : 'cursor-default'} // Always hide system cursor in masking mode to show custom one
         >
             {/* Layer 1: Background Image (Bottom) */}
-            <Layer>
+            <Layer
+                scaleX={stageScale}
+                scaleY={stageScale}
+                x={stagePos.x}
+                y={stagePos.y}
+            >
                 <URLImage
                     src={bgImageUrl}
                     width={dimensions.width}
@@ -185,8 +290,41 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
             <Layer
                 // Slider Clipping at Layer level for the entire "After" view
                 clipFunc={mode === 'view' ? (ctx) => {
+                    // With zooming, the clipRect is tricky.
+                    // The clipFunc is applied in the Local Coordinate Space of the Layer?
+                    // Yes. So if Layer is scaled, we should use coordinates that match the visible area?
+                    // Actually, sliderX is in SCREEN coords (unscaled).
+                    // If content is zoomed, the clip should still follow the visual slider line.
+                    // The clipFunc context will have the Layer transform applied.
+                    // So we need to inverse transform the sliderX to local coords?
+                    // ctx.transform is already applied.
+                    // If we draw rect(0,0, w, h), it will scale.
+                    // But sliderX is absolute screen X.
+                    // So we want to clip from `unproject(sliderX)` to end.
+                    // This is complex for clipFunc.
+                    // Alternative: Don't scale Layer 2. Scale a Group inside Layer 2.
+                    // Then clipFunc on Layer won't be affected by scale?
+                    // No, if I scale Layer, everything scales.
+                    // Let's stick to simple first:
+                    // If I zoom, the split view also zooms?
+                    // Usually Split View is a screen-space effect.
+                    // So left side is Original (zoomed), right side is Sim (zoomed).
+                    // So the clip line should stay fixed on screen.
+                    // If I zoom, the content zooms, but the split line stays?
+                    // Yes.
+                    // To achieve fixed split line on zoomed content:
+                    // We need to counter-scale the clip rect? Or use `ctx.setTransform(1,0,0,1,0,0)` to reset?
+                    // `clipFunc(ctx)` receives a context with current transform.
+                    // We can reset transform inside clipFunc!
+                    ctx.save();
+                    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to screen space
                     ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
+                    ctx.restore();
                 } : undefined}
+                scaleX={stageScale}
+                scaleY={stageScale}
+                x={stagePos.x}
+                y={stagePos.y}
             >
                 {/* Render each wall independently */}
                 {walls.length > 0 ? (

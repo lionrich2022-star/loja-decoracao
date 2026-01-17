@@ -46,22 +46,6 @@ export default function SimuladorPage() {
     const [isDetecting, setIsDetecting] = useState(false);
 
     useEffect(() => {
-        const recordVisit = async () => {
-            // Check session storage to avoid duplicate counts in same session (simple debounce)
-            if (sessionStorage.getItem('visited_simulator')) return;
-
-            try {
-                await supabase.from('page_views').insert({ page: 'simulator' });
-                sessionStorage.setItem('visited_simulator', 'true');
-            } catch (err) {
-                console.error('Error recording visit:', err);
-            }
-        };
-
-        recordVisit();
-    }, []);
-
-    useEffect(() => {
         async function fetchPapers() {
             try {
                 const { data, error } = await supabase
@@ -71,16 +55,16 @@ export default function SimuladorPage() {
 
                 if (error) {
                     console.error('Supabase error fetching papers:', error);
+                    // If error, maybe empty list but stop loading
                 }
-
-                // Manually added papers for immediate availability
-                const manualPapers = [
-                    { id: 'nou-1', nome: 'Papel Infantil Borboletas', imagem_url: '/papeis/papel_infantil.png', preco_m2: 59.90 },
-                    { id: 'nou-2', nome: 'Cimento Queimado', imagem_url: '/papeis/cimento_queimado.png', preco_m2: 45.00 },
-                    { id: 'nou-3', nome: 'Pedra Natural', imagem_url: '/papeis/pedra_natural.png', preco_m2: 89.90 },
+                // Fallback/Mock data for the new generated papers (since DB insert might fail on permissions)
+                const newPapers = [
+                    { id: 'local-1', nome: 'Papel Infantil Borboletas', imagem_url: '/papeis/papel_infantil.png', preco_m2: 59.90 },
+                    { id: 'local-2', nome: 'Cimento Queimado Industrial', imagem_url: '/papeis/cimento_queimado.png', preco_m2: 45.00 },
+                    { id: 'local-3', nome: 'Pedra Natural Moledo', imagem_url: '/papeis/pedra_natural.png', preco_m2: 89.90 }
                 ];
 
-                setPapers([...manualPapers, ...(data || [])]);
+                setPapers([...(data || []), ...newPapers]);
             } catch (error) {
                 console.error('Unexpected error fetching papers:', error);
             } finally {
