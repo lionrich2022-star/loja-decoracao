@@ -172,7 +172,110 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
             }}
             className={mode === 'masking' ? 'cursor-none' : isDraggingSlider ? 'cursor-ew-resize' : 'cursor-default'} // Always hide system cursor in masking mode to show custom one
         >
-            {/* ... (Layer 1 & 2 remain same) ... */}
+            {/* Layer 1: Background Image (Bottom) */}
+            <Layer>
+                <URLImage
+                    src={bgImageUrl}
+                    width={dimensions.width}
+                    height={dimensions.height}
+                />
+            </Layer>
+
+            {/* Layer 2: Wall Patterns (Middle) - Contains the masking magic */}
+            <Layer
+                // Slider Clipping at Layer level for the entire "After" view
+                clipFunc={mode === 'view' ? (ctx) => {
+                    ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
+                } : undefined}
+            >
+                {/* Render each wall independently */}
+                {walls.length > 0 ? (
+                    walls.map((wall) => {
+                        const currentPattern = wall.paperUrl || patternUrl;
+                        if (!currentPattern) return null;
+
+                        return (
+                            <Group key={wall.id}>
+                                <Group>
+                                    <Group>
+                                        <Line
+                                            points={(wall.points.length >= 3 ? wall.points : defaultMask).flatMap(p => [p.x, p.y])}
+                                            closed
+                                            fill="black"
+                                        />
+                                        {wall.brushStrokes?.map((stroke: any, i: number) => (
+                                            <Line
+                                                key={i}
+                                                points={stroke.points}
+                                                stroke="black"
+                                                strokeWidth={stroke.size}
+                                                lineCap="round"
+                                                lineJoin="round"
+                                                globalCompositeOperation={stroke.tool === 'remove' ? 'destination-out' : 'source-over'}
+                                            />
+                                        ))}
+                                        {isPaintDrawing && currentStroke && selectedWallId === wall.id && (
+                                            <Line
+                                                points={currentStroke.points}
+                                                stroke="black"
+                                                strokeWidth={currentStroke.size}
+                                                lineCap="round"
+                                                lineJoin="round"
+                                                globalCompositeOperation={currentStroke.tool === 'remove' ? 'destination-out' : 'source-over'}
+                                            />
+                                        )}
+                                    </Group>
+
+                                    <PatternLayer
+                                        patternUrl={currentPattern}
+                                        width={dimensions.width}
+                                        height={dimensions.height}
+                                        opacity={wall.opacity || opacity}
+                                        scale={wall.scale || scale}
+                                        globalCompositeOperation="source-in"
+                                    />
+                                </Group>
+
+                                {selectedWallId === wall.id && mode === 'view' && (
+                                    <Line
+                                        points={wall.points.flatMap(p => [p.x, p.y])}
+                                        closed
+                                        stroke="#3b82f6"
+                                        strokeWidth={2}
+                                        opacity={0.5}
+                                        globalCompositeOperation="source-over"
+                                    />
+                                )}
+                            </Group>
+                        );
+                    })
+                ) : (
+                    patternUrl && (
+                        <Group>
+                            <Group
+                                clipFunc={(ctx) => {
+                                    ctx.beginPath();
+                                    if (activeMask.length > 0) {
+                                        ctx.moveTo(activeMask[0].x, activeMask[0].y);
+                                        for (let i = 1; i < activeMask.length; i++) {
+                                            ctx.lineTo(activeMask[i].x, activeMask[i].y);
+                                        }
+                                    }
+                                    ctx.closePath();
+                                }}
+                            >
+                                <PatternLayer
+                                    patternUrl={patternUrl}
+                                    width={dimensions.width}
+                                    height={dimensions.height}
+                                    opacity={opacity}
+                                    scale={scale}
+                                />
+                            </Group>
+                        </Group>
+                    )
+                )}
+            </Layer>
 
             {/* Layer 3: UI Overlays (Top) */}
             <Layer>
