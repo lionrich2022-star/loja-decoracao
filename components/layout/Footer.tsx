@@ -13,17 +13,18 @@ export default function Footer() {
                     <p className="text-gray-500 text-xs mb-1">
                         &copy; {new Date().getFullYear()} Decora Design. Todos os direitos reservados.
                     </p>
+
                     <a
                         href="https://www.kryonsystems.com.br/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex flex-col items-center md:items-end gap-1 group mt-2"
+                        className="flex flex-col items-center md:items-end gap-2 group mt-3"
                     >
-                        <span className="text-[10px] text-gray-600 group-hover:text-gold-500 transition-colors">Desenvolvido por</span>
-                        <img src="/kryon-logo.png" alt="Kryon Systems" className="h-4 object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <span className="text-[10px] text-gray-600 group-hover:text-gold-500 transition-colors uppercase tracking-widest">Desenvolvido por</span>
+                        <img src="/kryon-logo.png" alt="Kryon Systems" className="h-8 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity" />
                     </a>
                 </div>
             </div>
-        </footer>
+        </footer >
     );
 }
