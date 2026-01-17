@@ -104,27 +104,18 @@ export default function SimuladorPage() {
                                             onClick={() => setMode('masking')}
                                             className="text-sm bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-gray-800 transition-colors flex items-center gap-2"
                                         >
-                                            ✂ Recortar Parede
+                                            ✂ Ajustar Área
                                         </button>
                                     ) : (
                                         <div className="flex gap-2">
                                             <span className="text-sm text-blue-600 font-medium animate-pulse">
-                                                Clique nos cantos da parede...
+                                                Arraste os cantos para definir a parede
                                             </span>
-                                            <button
-                                                onClick={() => {
-                                                    setWallPoints([]);
-                                                    setMode('view');
-                                                }}
-                                                className="text-sm text-red-600 border border-red-200 px-2 py-1 rounded"
-                                            >
-                                                Cancelar
-                                            </button>
                                             <button
                                                 onClick={() => setMode('view')}
                                                 className="text-sm bg-green-600 text-white px-3 py-1 rounded"
                                             >
-                                                Concluir
+                                                Pronto
                                             </button>
                                         </div>
                                     )}
