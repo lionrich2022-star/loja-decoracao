@@ -25,7 +25,7 @@ export default function LoginPage() {
             if (error) {
                 setError('Erro ao entrar. Verifique e-mail e senha.');
             } else {
-                router.push('/'); // Redireciona para o Dashboard (raiz do grupo admin)
+                router.push('/dashboard'); // Redireciona para o Dashboard (raiz do grupo admin)
             }
         } catch (err) {
             setError('Ocorreu um erro inesperado.');
