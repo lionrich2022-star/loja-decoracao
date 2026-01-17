@@ -109,26 +109,38 @@ export default function SimuladorPage() {
             <div className="lg:col-span-2">
                 <h3 className="font-medium mb-4 flex items-center justify-between text-gray-900 dark:text-white">
                     Escolha o Papel de Parede
-                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">{MOCK_PAPERS.length} opções disponíveis</span>
+                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">{papers.length} opções disponíveis</span>
                 </h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-96 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                    {MOCK_PAPERS.map((paper) => (
-                        <div
-                            key={paper.id}
-                            onClick={() => setSelectedPaper(paper.id)}
-                            className={`
-                            group cursor-pointer rounded-lg border-2 overflow-hidden transition-all relative
-                            ${selectedPaper === paper.id ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
-                        `}
-                        >
-                            <img src={paper.thumbnail} alt={paper.name} referrerPolicy="no-referrer" className="w-full aspect-square object-cover" />
-                            <div className={`absolute inset-0 transition-colors ${selectedPaper === paper.id ? 'bg-blue-500/10' : 'bg-black/0 group-hover:bg-black/5'}`} />
-                            <div className="p-2 text-xs font-medium truncate bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 text-gray-900 dark:text-white">
-                                {paper.name}
-                                <div className="text-gray-500 dark:text-gray-300 font-normal">R$ {paper.price_m2.toFixed(2)}/m²</div>
-                            </div>
+                    {loadingPapers ? (
+                        <div className="col-span-full py-8 flex justify-center text-gray-500">
+                            <Loader2 className="animate-spin mr-2" /> Carregando papéis...
                         </div>
-                    ))}
+                    ) : papers.length === 0 ? (
+                        <div className="col-span-full py-8 text-center text-gray-500 text-sm">
+                            Nenhum papel encontrado na loja.
+                        </div>
+                    ) : (
+                        papers.map((paper) => (
+                            <div
+                                key={paper.id}
+                                onClick={() => setSelectedPaper(paper.id)}
+                                className={`
+                                    group cursor-pointer rounded-lg border-2 overflow-hidden transition-all relative
+                                    ${selectedPaper === paper.id ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
+                                `}
+                            >
+                                <img src={paper.imagem_url} alt={paper.nome} referrerPolicy="no-referrer" className="w-full aspect-square object-cover" />
+                                <div className={`absolute inset-0 transition-colors ${selectedPaper === paper.id ? 'bg-blue-500/10' : 'bg-black/0 group-hover:bg-black/5'}`} />
+                                <div className="p-2 text-xs font-medium truncate bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 text-gray-900 dark:text-white">
+                                    {paper.nome}
+                                    <div className="text-gray-500 dark:text-gray-300 font-normal">
+                                        {paper.preco_m2 ? `R$ ${paper.preco_m2.toFixed(2)}/m²` : 'Preço sob consulta'}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
