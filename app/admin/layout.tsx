@@ -57,7 +57,7 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex bg-[#f8f5f2] dark:bg-gray-900">
             {/* Sidebar (Desktop) */}
             <div className="hidden md:block fixed inset-y-0 left-0 z-20">
                 <AdminSidebar onLogout={handleLogout} />
