@@ -1,12 +1,12 @@
 export const SIMULATOR_CONFIG = {
     // Basic Features
-    enableV1: true,        // Manual Selection
+    enableV1: true,        // Manual Selection (Polygon)
 
     // Advanced Features (SaaS Tiers)
-    enableV2: true,        // AI Auto-Detect (Single Wall)
+    enableV2: true,        // AI Auto-Detect (Single/Multi Wall)
     enableMultiWall: true, // V3: Multiple Walls Support
-    enableBrush: false,    // V4: Fine-tuning (Coming Soon)
-    enableBeforeAfter: true, // V5: Slider & Export (Partial)
+    enableBrush: true,     // V4: Fine-tuning Brush
+    enableBeforeAfter: true, // V5: Slider & Export
     enableBudget: true,    // V6: Calculator
 
     // UI Config
@@ -17,7 +17,10 @@ export const SIMULATOR_CONFIG = {
 
 export type WallData = {
     id: string;
-    rect: { x: number; y: number; width: number; height: number };
-    paperUrl?: string | null; // Allow different papers per wall in future
-    name?: string;
+    name: string;
+    points: { x: number; y: number }[]; // Polygon points for this wall
+    paperId?: string | null;            // Specific paper for this wall
+    paperUrl?: string | null;           // URL for rendering
+    opacity?: number;
+    scale?: number;
 };

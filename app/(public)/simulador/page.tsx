@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import PublicHeader from '@/components/layout/PublicHeader';
 import ImageUploader from '@/components/simulator/ImageUploader';
 import QuoteModal from '@/components/simulator/QuoteModal';
+import WallList from '@/components/simulator/WallList';
 import { supabase } from '@/lib/supabase'; // Import supabase
 import { Loader2 } from 'lucide-react';
 import Footer from '@/components/layout/Footer';
@@ -75,38 +76,49 @@ export default function SimuladorPage() {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Mock Result
-        // Ideally we need canvas dimensions here to be precise, but we'll infer.
-        // Let's assume standard container ~800x600 for simulation inputs
-        // CanvasStage handles internal scaling, so we try to provide relative or safe absolute coords?
-        // Actually CanvasStage manages logic.
-        // For 'Auto Detect', we will pass a list of walls.
-
         const newWalls: WallData[] = [];
 
         if (SIMULATOR_CONFIG.enableMultiWall) {
-            // Simulate 2 Walls detected
+            // Simulate 2 Walls detected (Polygons)
             newWalls.push({
                 id: 'wall-auto-1',
-                rect: { x: 50, y: 100, width: 300, height: 400 },
-                name: 'Parede Esquerda (IA)'
+                name: 'Parede Esquerda (IA)',
+                points: [
+                    { x: 50, y: 100 },
+                    { x: 350, y: 100 },
+                    { x: 350, y: 500 },
+                    { x: 50, y: 500 }
+                ]
             });
             newWalls.push({
                 id: 'wall-auto-2',
-                rect: { x: 400, y: 100, width: 350, height: 400 },
-                name: 'Parede Direita (IA)'
+                name: 'Parede Direita (IA)',
+                points: [
+                    { x: 400, y: 100 },
+                    { x: 750, y: 100 },
+                    { x: 750, y: 500 },
+                    { x: 400, y: 500 }
+                ]
             });
         } else {
             // Single Wall V2
             newWalls.push({
                 id: 'wall-auto-1',
-                rect: { x: 50, y: 50, width: 700, height: 500 },
-                name: 'Parede (IA)'
+                name: 'Parede (IA)',
+                points: [
+                    { x: 50, y: 50 },
+                    { x: 750, y: 50 },
+                    { x: 750, y: 550 },
+                    { x: 50, y: 550 }
+                ]
             });
         }
 
         setWalls(newWalls);
-        setSelectedWallId(newWalls[0].id); // Select first one
+        if (newWalls.length > 0) {
+            setSelectedWallId(newWalls[0].id);
+            setWallPoints(newWalls[0].points); // Sync edit state
+        }
         setIsDetecting(false);
         setMode('masking');
     };
@@ -114,32 +126,79 @@ export default function SimuladorPage() {
     // Masking State
     const [wallPoints, setWallPoints] = useState<{ x: number; y: number }[]>([]);
 
+    // Handler to Add Manual Wall (V3)
+    const handleAddWall = () => {
+        const newId = `wall-manual-${Date.now()}`;
+        const newWall: WallData = {
+            id: newId,
+            name: `Nova Parede ${walls.length + 1}`,
+            points: [] // Empty start, or maybe a default small rect
+        };
+        setWalls(prev => [...prev, newWall]);
+        setSelectedWallId(newId);
+        setWallPoints([]); // Cleared for new input
+        setMode('masking');
+    };
+
+    const handleRemoveWall = (id: string) => {
+        setWalls(prev => prev.filter(w => w.id !== id));
+        if (selectedWallId === id) {
+            setSelectedWallId(null);
+            setWallPoints([]);
+        }
+    };
+
     const handleStageClick = (e: any) => {
         if (mode !== 'masking') return;
         const stage = e.target.getStage();
         const pointer = stage.getPointerPosition();
         if (pointer) {
-            setWallPoints(prev => [...prev, pointer]);
+            const newPoints = [...wallPoints, pointer];
+            setWallPoints(newPoints);
+
+            // If we have a selected wall (V3), update it immediately in the list too?
+            // Or only on "Confirm"? Let's update immediately for responsiveness.
+            if (SIMULATOR_CONFIG.enableMultiWall && selectedWallId) {
+                setWalls(prev => prev.map(w =>
+                    w.id === selectedWallId ? { ...w, points: newPoints } : w
+                ));
+            }
         }
     };
 
     const toggleMaskingMode = () => {
         if (mode === 'view') {
             setMode('masking');
-            // If switching to masking and no points, clear any auto/default (start fresh)
-            if (wallPoints.length < 3) setWallPoints([]);
+            // Check if we need to init points
+            if (selectedWallId) {
+                const wall = walls.find(w => w.id === selectedWallId);
+                if (wall) setWallPoints(wall.points);
+            } else if (wallPoints.length < 3) {
+                setWallPoints([]);
+            }
         } else {
             setMode('view');
         }
     };
 
     const undoLastPoint = () => {
-        setWallPoints(prev => prev.slice(0, -1));
+        const newPoints = wallPoints.slice(0, -1);
+        setWallPoints(newPoints);
+        if (SIMULATOR_CONFIG.enableMultiWall && selectedWallId) {
+            setWalls(prev => prev.map(w =>
+                w.id === selectedWallId ? { ...w, points: newPoints } : w
+            ));
+        }
     };
 
     const clearMask = () => {
         if (confirm('Deseja limpar o recorte atual?')) {
             setWallPoints([]);
+            if (SIMULATOR_CONFIG.enableMultiWall && selectedWallId) {
+                setWalls(prev => prev.map(w =>
+                    w.id === selectedWallId ? { ...w, points: [] } : w
+                ));
+            }
         }
     };
 
@@ -328,6 +387,23 @@ export default function SimuladorPage() {
                                     O envio do orçamento é rápido e sem compromisso.
                                 </p>
                             </div>
+
+                            {/* V3: Wall List (Only if MultiWall enabled) */}
+                            {SIMULATOR_CONFIG.enableMultiWall && walls.length > 0 && (
+                                <WallList
+                                    walls={walls}
+                                    selectedWallId={selectedWallId}
+                                    onSelectWall={(id) => {
+                                        setSelectedWallId(id);
+                                        // Sync points to editing state
+                                        const wall = walls.find(w => w.id === id);
+                                        if (wall) setWallPoints(wall.points);
+                                        setMode('masking'); // Auto switch to view/edit
+                                    }}
+                                    onAddWall={handleAddWall}
+                                    onRemoveWall={handleRemoveWall}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -343,7 +419,7 @@ export default function SimuladorPage() {
                     height: dimensions.height,
                     totalPrice: totalPrice
                 }}
-                imageBlob={bgImage} // Passing the BLOB url (will basically just save string)
+                imageBlob={bgImage} // Passing the BLOB url
             />
             <Footer />
         </div>

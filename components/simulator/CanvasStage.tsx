@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Stage, Layer, Image as KonvaImage, Rect, Group, Line, Circle, Text as KonvaText } from 'react-konva';
 import useImage from 'use-image';
 
+import { WallData } from './SimulatorConfig';
+
 interface CanvasStageProps {
     bgImageUrl: string | null;
     patternUrl: string | null;
@@ -11,9 +13,9 @@ interface CanvasStageProps {
     wallPoints?: { x: number; y: number }[];
     onStageClick?: (e: any) => void;
     // V3 Props
-    walls?: any[];
+    walls?: WallData[];
     selectedWallId?: string | null;
-    onWallsChange?: (walls: any[]) => void;
+    onWallsChange?: (walls: WallData[]) => void;
     onSelectWall?: (id: string | null) => void;
 }
 
@@ -107,72 +109,80 @@ export default function CanvasStage({ bgImageUrl, patternUrl, opacity, scale, mo
                 />
 
                 {/* 2. Pattern Group (Before/After Slider + Mask) */}
-                {patternUrl && (
-                    <Group
-                        clipFunc={(ctx) => {
-                            // A. Slider Clipping (Show only to RIGHT of slider)
-                            // We define the region visible as the rectangle from SliderX to Width
-                            ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
+                {/* 2. Pattern Group (Multi-Wall V3) */}
+                <Group
+                    // Slider Clipping (Global for all walls for now, simplifies comparison)
+                    clipFunc={(ctx) => {
+                        ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
+                    }}
+                >
+                    {/* Render each wall independently */}
+                    {walls.length > 0 ? (
+                        walls.map((wall) => {
+                            // Use specific paper for this wall, or global fallback if selected
+                            const currentPattern = wall.paperUrl || patternUrl;
+                            if (!currentPattern) return null;
 
-                            // B. Mask Intersect (Wall Shape)
-                            ctx.beginPath();
-                            ctx.moveTo(activeMask[0].x, activeMask[0].y);
-                            for (let i = 1; i < activeMask.length; i++) {
-                                ctx.lineTo(activeMask[i].x, activeMask[i].y);
-                            }
-                            ctx.closePath();
-                            // Konva's clipFunc implicitly intersects subsequent paths/rects if designed right,
-                            // OR we rely on the fact that clipFunc defines ONE path.
-                            // Actually, clipFunc replaces the drawing region.
-                            // To do Intersection, we might need a trick or nested groups.
-                            // BUT: 'ctx.rect' adds a subpath. 'ctx.moveTo/lineTo' adds another.
-                            // If we want Intersection, we need to be careful.
-                            // However, simple approach: Use logic to draw a shape that IS the intersection? Too hard.
-                            // BETTER APPROACH:
-
-                            // Let's use NESTED GROUPS in the render instead of complex context logic here.
-                            // Check "2. Pattern Group" below.
-                        }}
-                    >
-                        {/* This approach above with multiple paths in one clipFunc works as UNION usually, or winding rule dependent.
-                             Lets try a safer Nested Group approach for Slider + Mask.
-                         */}
-                    </Group>
-                )}
-
-                {/* RE-IMPLEMENTING PATTERN WITH NESTED GROUPS FOR PROPER CLIPPING */}
-
-                {patternUrl && (
-                    <Group
-                        // OUTER GROUP: Handles the Slider Clipping (Left/Right split)
-                        clipFunc={(ctx) => {
-                            // Visible ONLY on the RIGHT side of the slider
-                            ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
-                        }}
-                    >
-                        <Group
-                            // INNER GROUP: Handles the Wall Shape Mask
-                            clipFunc={(ctx) => {
-                                ctx.beginPath();
-                                if (activeMask.length > 0) {
-                                    ctx.moveTo(activeMask[0].x, activeMask[0].y);
-                                    for (let i = 1; i < activeMask.length; i++) {
-                                        ctx.lineTo(activeMask[i].x, activeMask[i].y);
+                            return (
+                                <Group
+                                    key={wall.id}
+                                    clipFunc={(ctx) => {
+                                        if (wall.points && wall.points.length > 2) {
+                                            ctx.beginPath();
+                                            ctx.moveTo(wall.points[0].x, wall.points[0].y);
+                                            for (let i = 1; i < wall.points.length; i++) {
+                                                ctx.lineTo(wall.points[i].x, wall.points[i].y);
+                                            }
+                                            ctx.closePath();
+                                        }
+                                    }}
+                                >
+                                    <PatternLayer
+                                        patternUrl={currentPattern}
+                                        width={dimensions.width}
+                                        height={dimensions.height}
+                                        opacity={wall.opacity || opacity}
+                                        scale={wall.scale || scale}
+                                    />
+                                    {/* Highlight Selected Wall */}
+                                    {selectedWallId === wall.id && mode === 'view' && (
+                                        <Line
+                                            points={wall.points.flatMap(p => [p.x, p.y])}
+                                            closed
+                                            stroke="#3b82f6"
+                                            strokeWidth={2}
+                                            opacity={0.5}
+                                        />
+                                    )}
+                                </Group>
+                            );
+                        })
+                    ) : (
+                        // Fallback: V1 Single Wall (Active User Mask)
+                        patternUrl && (
+                            <Group
+                                clipFunc={(ctx) => {
+                                    ctx.beginPath();
+                                    if (activeMask.length > 0) {
+                                        ctx.moveTo(activeMask[0].x, activeMask[0].y);
+                                        for (let i = 1; i < activeMask.length; i++) {
+                                            ctx.lineTo(activeMask[i].x, activeMask[i].y);
+                                        }
                                     }
-                                }
-                                ctx.closePath();
-                            }}
-                        >
-                            <PatternLayer
-                                patternUrl={patternUrl}
-                                width={dimensions.width}
-                                height={dimensions.height}
-                                opacity={opacity}
-                                scale={scale}
-                            />
-                        </Group>
-                    </Group>
-                )}
+                                    ctx.closePath();
+                                }}
+                            >
+                                <PatternLayer
+                                    patternUrl={patternUrl}
+                                    width={dimensions.width}
+                                    height={dimensions.height}
+                                    opacity={opacity}
+                                    scale={scale}
+                                />
+                            </Group>
+                        )
+                    )}
+                </Group>
 
 
                 {/* 3. Slider UI (Visible in View Mode) */}
