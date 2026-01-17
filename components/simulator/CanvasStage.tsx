@@ -8,8 +8,8 @@ interface CanvasStageProps {
     opacity: number;
     scale: number;
     mode: 'view' | 'masking';
-    wallPoints: { x: number; y: number }[];
-    onStageClick: (e: any) => void;
+    wallPoints?: { x: number; y: number }[];
+    onStageClick?: (e: any) => void;
     // V3 Props
     walls?: any[];
     selectedWallId?: string | null;
