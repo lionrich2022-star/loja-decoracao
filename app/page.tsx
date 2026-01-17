@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function Home() {
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 transition-colors">
             {/* Header / Nav */}
             <header className="py-6 px-8 flex justify-between items-center max-w-7xl mx-auto w-full dark:bg-gray-900 transition-colors">
                 <div className="flex items-center gap-2">
