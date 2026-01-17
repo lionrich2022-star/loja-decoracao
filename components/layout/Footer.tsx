@@ -17,9 +17,10 @@ export default function Footer() {
                         href="https://www.kryonsystems.com.br/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-gray-500 hover:text-gold-400 transition-colors flex items-center justify-center md:justify-end gap-1"
+                        className="flex flex-col items-center md:items-end gap-1 group mt-2"
                     >
-                        Desenvolvido por <span className="font-semibold text-gray-400 hover:text-white transition-colors">Kryon Systems</span>
+                        <span className="text-[10px] text-gray-600 group-hover:text-gold-500 transition-colors">Desenvolvido por</span>
+                        <img src="/kryon-logo.png" alt="Kryon Systems" className="h-4 object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
                     </a>
                 </div>
             </div>
