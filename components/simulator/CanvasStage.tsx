@@ -3,7 +3,7 @@ import { Stage, Layer, Image as KonvaImage, Rect, Group, Line, Circle, Text as K
 import useImage from 'use-image';
 
 interface CanvasStageProps {
-    bgImageUrl: string;
+    bgImageUrl: string | null;
     patternUrl: string | null;
     opacity: number;
     scale: number;

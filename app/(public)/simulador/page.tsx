@@ -15,7 +15,11 @@ const CanvasStage = dynamic(() => import('@/components/simulator/CanvasStage'), 
 });
 
 import { SIMULATOR_CONFIG, WallData } from '@/components/simulator/SimulatorConfig';
-import { v4 as uuidv4 } from 'uuid'; // Actually we don't have uuid installed, let's use random string
+
+// ...
+
+// In QuoteModal:
+paperName: selectedPaperData?.nome,
 
 // ... (previous imports)
 
@@ -89,6 +93,16 @@ export default function SimuladorPage() {
         setIsDetecting(false);
         setMode('masking');
     };
+
+    // Derived state for the selected paper
+    const selectedPaperData = papers.find(p => p.id === selectedPaper);
+
+    const totalPrice = useMemo(() => {
+        if (!dimensions.width || !dimensions.height || !selectedPaperData) return 0;
+        const area = dimensions.width * dimensions.height;
+        // Use preco_m2 from DB, default to 0 if missing
+        return area * (selectedPaperData.preco_m2 || 0);
+    }, [dimensions, selectedPaperData]);
 
     // ... (render)
 
@@ -213,24 +227,21 @@ export default function SimuladorPage() {
                 </div>
             </div>
         </div>
-                        </div >
-                    )
-}
                 </div >
             </main >
 
-    <QuoteModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        summary={{
-            paperId: selectedPaper || undefined,
-            paperName: selectedPaperData?.name,
-            width: dimensions.width,
-            height: dimensions.height,
-            totalPrice: totalPrice
-        }}
-        imageBlob={bgImage} // Passing the BLOB url (will basically just save string)
-    />
+        <QuoteModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            summary={{
+                paperId: selectedPaper || undefined,
+                paperName: selectedPaperData?.nome,
+                width: dimensions.width,
+                height: dimensions.height,
+                totalPrice: totalPrice
+            }}
+            imageBlob={bgImage} // Passing the BLOB url (will basically just save string)
+        />
         </div >
     );
 }
