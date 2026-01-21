@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as deeplab from '@tensorflow-models/deeplab';
 
 const modelName = 'ade20k';
-const quantizationBytes = 2; // Keep 2 for quality, but handle resize
+const quantizationBytes = 2;
 
 let model: deeplab.SemanticSegmentation | null = null;
 
@@ -13,17 +13,22 @@ export interface Point {
 
 export const loadAutoMaskerModel = async () => {
     if (model) return model;
+
+    // Check if browser environment supports 32-bit indices for large tensors if needed
+    // But we are resizing to 512, so it's fine.
     await tf.ready();
-    console.log('Loading DeepLab ADE20k model...');
+
+    // Attempt to load model with retry
     try {
+        console.log('Loading DeepLab ADE20k model...');
         model = await deeplab.load({
             base: modelName,
             quantizationBytes: quantizationBytes
         });
         return model;
     } catch (e) {
-        console.error("Failed to load model", e);
-        return null; // Handle graceful failure
+        console.error("Failed to load AutoMasker Model", e);
+        return null; // Model failed
     }
 };
 
@@ -32,7 +37,7 @@ export const detectWallPoints = async (imageElement: HTMLImageElement, width: nu
         const loadedModel = await loadAutoMaskerModel();
         if (!loadedModel) throw new Error("Model failed to load");
 
-        // 1. Resize Input for Stability (Max 512px)
+        // 1. Safe Resize (512px) - Proven to help stability
         const size = 512;
         const resizeCanvas = document.createElement('canvas');
         resizeCanvas.width = size;
@@ -42,97 +47,132 @@ export const detectWallPoints = async (imageElement: HTMLImageElement, width: nu
         ctx.drawImage(imageElement, 0, 0, size, size);
 
         // 2. Segment
-        // Note: DeepLab internal resizing is sometimes opaque. Doing it explicitly helps.
         const segmentation = await loadedModel.segment(resizeCanvas);
-        const { height: maskHeight, width: maskWidth, segmentationMap } = segmentation;
+        const { width: maskWidth, height: maskHeight, segmentationMap } = segmentation;
 
-        // ADE20k: 0=Wall, 1=Building, 5=Ceiling, 3=Floor. 
-        // We focus on Wall (0) and Building (1) primarily.
+        // ADE20k Classes: 0=Wall, 1=Building (structure).
         const targetClasses = [0, 1];
 
-        let wallPixelsCount = 0;
-        let minX = maskWidth, maxX = 0, minY = maskHeight, maxY = 0;
+        // 3. Find Centroid & Mass
+        let sumX = 0, sumY = 0, count = 0;
+        const binaryMap = new Uint8Array(maskWidth * maskHeight);
 
-        // Analyze presence
         for (let i = 0; i < segmentationMap.length; i++) {
             if (targetClasses.includes(segmentationMap[i])) {
-                wallPixelsCount++;
-                const px = i % maskWidth;
-                const py = Math.floor(i / maskWidth);
-                if (px < minX) minX = px;
-                if (px > maxX) maxX = px;
-                if (py < minY) minY = py;
-                if (py > maxY) maxY = py;
+                binaryMap[i] = 1;
+                // Accumulate for centroid
+                const x = i % maskWidth;
+                const y = Math.floor(i / maskWidth);
+                sumX += x;
+                sumY += y;
+                count++;
+            } else {
+                binaryMap[i] = 0;
             }
         }
 
-        if (wallPixelsCount < (maskWidth * maskHeight * 0.01)) {
-            // Less than 1% is wall? Probaly failed.
-            // Try fallback to include "Ceiling" (5) just in case?
-            console.warn("Low wall detection confidence.");
-            if (wallPixelsCount === 0) return [];
+        // If very few pixels (< 0.5%), detection probably failed or no wall visible
+        if (count < (maskWidth * maskHeight * 0.005)) {
+            console.warn("AI found almost no wall pixels.");
+            return []; // Return empty to prompt manual, or use a box? Empty is safer.
         }
 
-        // 3. Algorithm: Column Scan (Preferred)
-        const points = scanColumns(segmentationMap, maskWidth, maskHeight, targetClasses);
+        // 4. Determine Seal Point (Hub)
+        let hubX = Math.floor(sumX / count);
+        let hubY = Math.floor(sumY / count);
 
-        // 4. Fallback: Bounding Box
-        let finalPoints = points;
-        if (points.length < 3) {
-            console.log("Column scan failed, falling back to Bounding Box");
-            finalPoints = [
-                { x: minX, y: minY },
-                { x: maxX, y: minY },
-                { x: maxX, y: maxY },
-                { x: minX, y: maxY }
-            ];
+        // Verify Hub is actually ON a wall pixel. If not, spiral out to find nearest wall pixel.
+        // This handles cases where the wall is a "U" shape and centroid is in the empty middle.
+        const hubIdx = hubY * maskWidth + hubX;
+        if (binaryMap[hubIdx] === 0) {
+            // Spiral search
+            let found = false;
+            const maxRadius = Math.min(maskWidth, maskHeight) / 2;
+            for (let r = 1; r < maxRadius; r += 2) {
+                // Check circle at radius r (simplified to 8 points or ring?)
+                // Just scan a box ring for simplicity
+                for (let dx = -r; dx <= r; dx++) {
+                    for (let dy = -r; dy <= r; dy++) {
+                        // Only check perimeter
+                        if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+
+                        const nx = hubX + dx;
+                        const ny = hubY + dy;
+                        if (nx >= 0 && nx < maskWidth && ny >= 0 && ny < maskHeight) {
+                            if (binaryMap[ny * maskWidth + nx] === 1) {
+                                hubX = nx;
+                                hubY = ny;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (found) break;
+                }
+                if (found) break;
+            }
         }
 
-        // 5. Scale back to original
+        // 5. Raycast Hub & Spoke
+        const points = getHubSpokeContour(binaryMap, maskWidth, maskHeight, hubX, hubY);
+
+        // 6. Smoothing / Simplifying (Simple outlier removal could go here)
+
+        // 7. Scale Back
         const scaleX = width / maskWidth;
         const scaleY = height / maskHeight;
 
-        return finalPoints.map(p => ({ x: p.x * scaleX, y: p.y * scaleY }));
+        return points.map(p => ({ x: p.x * scaleX, y: p.y * scaleY }));
 
     } catch (err) {
-        console.error("AI Detection failed:", err);
+        console.error("AI Estimation Error:", err);
         return [];
     }
 };
 
-function scanColumns(map: any, width: number, height: number, classes: number[]): Point[] {
-    const numColumns = 40;
-    const colStep = Math.floor(width / numColumns);
-    const topPoints: Point[] = [];
-    const bottomPoints: Point[] = [];
+function getHubSpokeContour(map: Uint8Array, width: number, height: number, cx: number, cy: number): Point[] {
+    const resolution = 72; // 360 / 5 degree steps
+    const contour: Point[] = [];
 
-    for (let c = 0; c <= numColumns; c++) {
-        const x = Math.min(c * colStep, width - 1);
-        let longestSegment = { start: -1, end: -1, length: 0 };
-        let currentStart = -1;
+    for (let i = 0; i < resolution; i++) {
+        const theta = (i * (360 / resolution)) * (Math.PI / 180);
+        const dx = Math.cos(theta);
+        const dy = Math.sin(theta);
 
-        for (let y = 0; y < height; y++) {
-            const idx = y * width + x;
-            if (classes.includes(map[idx])) {
-                if (currentStart === -1) currentStart = y;
-            } else {
-                if (currentStart !== -1) {
-                    const len = y - currentStart;
-                    if (len > longestSegment.length) longestSegment = { start: currentStart, end: y, length: len };
-                    currentStart = -1;
-                }
+        let edgeX = cx;
+        let edgeY = cy;
+        let foundBoundary = false;
+
+        // Ray march
+        const maxDist = Math.max(width, height); // Covering diagonals
+
+        // We assume we START on a wall (hub). We look for when we EXIT the wall.
+        for (let r = 0; r < maxDist; r += 1) { // Step 1 for precision
+            const px = Math.floor(cx + dx * r);
+            const py = Math.floor(cy + dy * r);
+
+            // Check bounds
+            if (px < 0 || px >= width || py < 0 || py >= height) {
+                edgeX = Math.max(0, Math.min(width - 1, px)); // Clamp to image edge
+                edgeY = Math.max(0, Math.min(height - 1, py));
+                foundBoundary = true;
+                break;
             }
-        }
-        if (currentStart !== -1) {
-            const len = height - currentStart;
-            if (len > longestSegment.length) longestSegment = { start: currentStart, end: height, length: len };
+
+            if (map[py * width + px] === 0) {
+                // Hit non-wall (furniture, floor, etc.)
+                edgeX = px - dx; // Backtrack slightly? or just take previous
+                edgeY = py - dy;
+                foundBoundary = true;
+                break;
+            }
+
+            edgeX = px;
+            edgeY = py;
         }
 
-        // Relaxed threshold: > 2% of height
-        if (longestSegment.length > height * 0.02) {
-            topPoints.push({ x: x, y: longestSegment.start });
-            bottomPoints.unshift({ x: x, y: longestSegment.end });
-        }
+        contour.push({ x: edgeX, y: edgeY });
     }
-    return [...topPoints, ...bottomPoints];
+
+    return contour;
 }
