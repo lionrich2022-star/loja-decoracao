@@ -337,7 +337,11 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                 setIsPaintDrawing(false);
                 setCursorPos(null); // Hide cursor when leaving stage
             }}
-            className={mode === 'masking' ? 'cursor-none' : isDraggingSlider ? 'cursor-ew-resize' : 'cursor-default'} // Always hide system cursor in masking mode to show custom one
+            className={
+                mode === 'masking'
+                    ? (activeTool === 'brush-add' || activeTool === 'brush-remove' ? 'cursor-none' : 'cursor-crosshair')
+                    : isDraggingSlider ? 'cursor-ew-resize' : 'cursor-default'
+            }
         >
             {/* Layer 1: Background Image (Bottom) */}
             <Layer

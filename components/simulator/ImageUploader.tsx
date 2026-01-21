@@ -12,6 +12,7 @@ interface ImageUploaderProps {
 export default function ImageUploader({ onImageSelect, onPresetSelect }: ImageUploaderProps) {
     const [dragActive, setDragActive] = useState(false);
     const [activeTab, setActiveTab] = useState<'upload' | 'presets'>('upload');
+    const [selectedCategory, setSelectedCategory] = useState<RoomPreset['category'] | 'all'>('all');
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -47,8 +48,8 @@ export default function ImageUploader({ onImageSelect, onPresetSelect }: ImageUp
                 <button
                     onClick={() => setActiveTab('upload')}
                     className={`flex-1 py-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'upload'
-                            ? 'bg-white dark:bg-gray-800 text-blue-600 border-b-2 border-blue-600'
-                            : 'bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        ? 'bg-white dark:bg-gray-800 text-blue-600 border-b-2 border-blue-600'
+                        : 'bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                 >
                     <Camera className="w-4 h-4" />
@@ -57,8 +58,8 @@ export default function ImageUploader({ onImageSelect, onPresetSelect }: ImageUp
                 <button
                     onClick={() => setActiveTab('presets')}
                     className={`flex-1 py-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'presets'
-                            ? 'bg-white dark:bg-gray-800 text-purple-600 border-b-2 border-purple-600'
-                            : 'bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        ? 'bg-white dark:bg-gray-800 text-purple-600 border-b-2 border-purple-600'
+                        : 'bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                 >
                     <ImageIcon className="w-4 h-4" />
@@ -102,28 +103,58 @@ export default function ImageUploader({ onImageSelect, onPresetSelect }: ImageUp
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-                        {ROOM_PRESETS.map((preset) => (
-                            <button
-                                key={preset.id}
-                                onClick={() => onPresetSelect(preset)}
-                                className="group relative aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:ring-2 hover:ring-purple-500 transition-all text-left"
-                            >
-                                <img
-                                    src={preset.imageUrl}
-                                    alt={preset.label}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
-                                    <span className="text-white font-medium text-lg">{preset.label}</span>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-xs text-gray-300 uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded backdrop-blur-sm">
-                                            {preset.category}
-                                        </span>
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
+                    <div className="space-y-6">
+                        {/* Category Filters */}
+                        <div className="flex flex-wrap gap-2 justify-center">
+                            {[
+                                { id: 'all', label: 'Todos' },
+                                { id: 'sala', label: 'Sala' },
+                                { id: 'quarto', label: 'Quarto' },
+                                { id: 'escritorio', label: 'Escritório' },
+                                { id: 'copa', label: 'Copa/Jantar' },
+                                { id: 'sala_tv', label: 'Sala de TV' },
+                                { id: 'varanda', label: 'Varanda' },
+                                { id: 'infantil', label: 'Infantil' }
+                            ].map((cat) => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setSelectedCategory(cat.id as any)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat.id
+                                            ? 'bg-purple-600 text-white shadow-md'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                        }`}
+                                >
+                                    {cat.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Presets Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+                            {ROOM_PRESETS
+                                .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
+                                .map((preset) => (
+                                    <button
+                                        key={preset.id}
+                                        onClick={() => onPresetSelect(preset)}
+                                        className="group relative aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:ring-2 hover:ring-purple-500 transition-all text-left"
+                                    >
+                                        <img
+                                            src={preset.imageUrl}
+                                            alt={preset.label}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
+                                            <span className="text-white font-medium text-lg">{preset.label}</span>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs text-gray-300 uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded backdrop-blur-sm">
+                                                    {preset.category}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                        </div>
                     </div>
                 )}
             </div>
