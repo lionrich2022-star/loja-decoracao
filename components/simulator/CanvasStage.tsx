@@ -3,7 +3,7 @@ import { Stage, Layer, Image as KonvaImage, Rect, Group, Line, Circle, Text as K
 import Konva from 'konva';
 import useImage from 'use-image';
 
-import { WallData } from './SimulatorConfig';
+import { WallData, SIMULATOR_CONFIG } from './SimulatorConfig';
 
 interface CanvasStageProps {
     bgImageUrl: string | null;
@@ -355,34 +355,8 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
             {/* Layer 2: Wall Patterns (Middle) - Contains the masking magic */}
             <Layer
                 globalCompositeOperation="multiply"
-                // Slider Clipping at Layer level for the entire "After" view
-                clipFunc={mode === 'view' ? (ctx) => {
-                    // With zooming, the clipRect is tricky.
-                    // The clipFunc is applied in the Local Coordinate Space of the Layer?
-                    // Yes. So if Layer is scaled, we should use coordinates that match the visible area?
-                    // Actually, sliderX is in SCREEN coords (unscaled).
-                    // If content is zoomed, the clip should still follow the visual slider line.
-                    // The clipFunc context will have the Layer transform applied.
-                    // So we need to inverse transform the sliderX to local coords?
-                    // ctx.transform is already applied.
-                    // If we draw rect(0,0, w, h), it will scale.
-                    // But sliderX is absolute screen X.
-                    // So we want to clip from `unproject(sliderX)` to end.
-                    // This is complex for clipFunc.
-                    // Alternative: Don't scale Layer 2. Scale a Group inside Layer 2.
-                    // Then clipFunc on Layer won't be affected by scale?
-                    // No, if I scale Layer, everything scales.
-                    // Let's stick to simple first:
-                    // If I zoom, the split view also zooms?
-                    // Usually Split View is a screen-space effect.
-                    // So left side is Original (zoomed), right side is Sim (zoomed).
-                    // So the clip line should stay fixed on screen.
-                    // If I zoom, the content zooms, but the split line stays?
-                    // Yes.
-                    // To achieve fixed split line on zoomed content:
-                    // We need to counter-scale the clip rect? Or use `ctx.setTransform(1,0,0,1,0,0)` to reset?
-                    // `clipFunc(ctx)` receives a context with current transform.
-                    // We can reset transform inside clipFunc!
+                // Slider Clipping at Layer level for the entire "After" view, ONLY if enabled
+                clipFunc={(mode === 'view' && SIMULATOR_CONFIG.enableBeforeAfter && patternUrl) ? (ctx) => {
                     ctx.save();
                     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to screen space
                     ctx.rect(sliderX, 0, dimensions.width - sliderX, dimensions.height);
@@ -473,7 +447,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                                     patternUrl={patternUrl}
                                     width={dimensions.width}
                                     height={dimensions.height}
-                                    opacity={opacity}
+                                    preset={preset}
                                     scale={scale}
                                 />
                             </Group>
@@ -588,7 +562,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
             {/* Layer 4: Static Screen UI (Slider & Labels) - NO SCALE */}
             <Layer>
                 {/* Static Labels (Premium Style - Fixed at bottom corners) */}
-                {mode === 'view' && patternUrl && (
+                {mode === 'view' && patternUrl && SIMULATOR_CONFIG.enableBeforeAfter && (
                     <>
                         {/* ORIGINAL Label (Left) */}
                         <Group x={20} y={dimensions.height - 60}>
@@ -633,7 +607,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                 )}
 
                 {/* Slider UI (Visible in View Mode) */}
-                {mode === 'view' && patternUrl && (
+                {mode === 'view' && patternUrl && SIMULATOR_CONFIG.enableBeforeAfter && (
                     <Group
                         x={sliderX}
                         draggable
@@ -679,6 +653,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                     </Group>
                 )}
             </Layer>
+
         </Stage>
     );
 });

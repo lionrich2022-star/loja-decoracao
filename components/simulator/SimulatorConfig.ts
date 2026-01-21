@@ -6,11 +6,11 @@ export const SIMULATOR_CONFIG = {
     enableV2: true,        // AI Auto-Detect (Single/Multi Wall)
     enableMultiWall: true, // V3: Multiple Walls Support
     enableBrush: true,     // V4: Fine-tuning Brush
-    enableBeforeAfter: true, // V5: Slider & Export
+    enableBeforeAfter: false, // V5: Disabled by user request
     enableBudget: true,    // V6: Calculator
 
     // UI Config
-    defaultOpacity: 0.85,
+    defaultOpacity: 0.90, // Tweak for realism (was 0.85)
     defaultScale: 0.5,
     showDebug: false
 };
