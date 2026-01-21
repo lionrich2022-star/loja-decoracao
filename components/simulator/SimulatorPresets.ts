@@ -20,10 +20,10 @@ export const ROOM_PRESETS: RoomPreset[] = [
                 id: 'pres-1-wall-1',
                 name: 'Parede Fundo',
                 points: [
-                    { x: 350, y: 150 }, // Approximation based on image structure
-                    { x: 1650, y: 150 },
-                    { x: 1650, y: 850 },
-                    { x: 350, y: 850 }
+                    { x: 0, y: 0 },
+                    { x: 1300, y: 0 },
+                    { x: 1300, y: 750 },
+                    { x: 0, y: 750 }
                 ],
                 brushStrokes: []
             }
@@ -39,10 +39,10 @@ export const ROOM_PRESETS: RoomPreset[] = [
                 id: 'pres-2-wall-1',
                 name: 'Cabeceira',
                 points: [
-                    { x: 200, y: 100 },
-                    { x: 1800, y: 100 },
-                    { x: 1800, y: 900 },
-                    { x: 200, y: 900 }
+                    { x: 280, y: 200 },
+                    { x: 1720, y: 200 },
+                    { x: 1720, y: 850 },
+                    { x: 280, y: 850 }
                 ],
                 brushStrokes: []
             }
@@ -58,10 +58,10 @@ export const ROOM_PRESETS: RoomPreset[] = [
                 id: 'pres-3-wall-1',
                 name: 'Parede Lateral',
                 points: [
-                    { x: 100, y: 100 },
-                    { x: 800, y: 200 }, // Perspective left-ish
-                    { x: 800, y: 900 },
-                    { x: 100, y: 1000 }
+                    { x: 220, y: 150 },
+                    { x: 950, y: 280 },
+                    { x: 950, y: 850 },
+                    { x: 220, y: 920 }
                 ],
                 brushStrokes: []
             }
@@ -77,10 +77,10 @@ export const ROOM_PRESETS: RoomPreset[] = [
                 id: 'pres-4-wall-1',
                 name: 'Parede Principal',
                 points: [
-                    { x: 150, y: 150 },
-                    { x: 1850, y: 150 },
-                    { x: 1850, y: 950 },
-                    { x: 150, y: 950 }
+                    { x: 130, y: 130 },
+                    { x: 1870, y: 130 },
+                    { x: 1870, y: 900 },
+                    { x: 130, y: 900 }
                 ],
                 brushStrokes: []
             }
