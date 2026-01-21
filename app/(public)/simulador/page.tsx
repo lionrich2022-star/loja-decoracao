@@ -249,6 +249,15 @@ export default function SimuladorPage() {
                                 <button onClick={resetSimulator} className="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors px-2 py-1 hover:bg-white/10 rounded">
                                     <ChevronLeft className="w-4 h-4" /> Trocar Ambiente
                                 </button>
+                                <div className="w-px h-6 bg-gray-700 mx-2"></div>
+                                <button
+                                    onClick={handleAutoDetect}
+                                    disabled={isDetecting}
+                                    className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border transition-all ${isDetecting ? 'bg-purple-900/50 border-purple-500/50 text-purple-200' : 'bg-gradient-to-r from-purple-600 to-blue-600 border-transparent text-white hover:shadow-lg hover:shadow-purple-500/25'}`}
+                                >
+                                    {isDetecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                                    <span className="hidden sm:inline font-medium">Auto IA</span>
+                                </button>
                                 <div className="h-4 w-px bg-gray-600 mx-2" />
                                 <button
                                     onClick={() => setMode(mode === 'view' ? 'masking' : 'view')}
