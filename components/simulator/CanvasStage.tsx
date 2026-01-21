@@ -4,6 +4,7 @@ import Konva from 'konva';
 import useImage from 'use-image';
 
 import { WallData, SIMULATOR_CONFIG } from './SimulatorConfig';
+import { KonvaEventObject } from 'konva/lib/Node';
 
 interface CanvasStageProps {
     bgImageUrl: string | null;
@@ -307,7 +308,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
         setIsDraggingSlider(false);
         if (isPaintDrawing && currentStroke && selectedWallId && onWallsChange) {
             // Commit stroke
-            const updatedWalls = walls.map(w => {
+            const updatedWalls = walls.map((w: WallData) => {
                 if (w.id === selectedWallId) {
                     return {
                         ...w,
@@ -369,7 +370,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
             >
                 {/* Render each wall independently */}
                 {walls.length > 0 ? (
-                    walls.map((wall) => {
+                    walls.map((wall: WallData) => {
                         const currentPattern = wall.paperUrl || patternUrl;
                         if (!currentPattern) return null;
 
@@ -378,7 +379,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                                 <Group>
                                     <Group>
                                         <Line
-                                            points={(wall.points.length >= 3 ? wall.points : defaultMask).flatMap(p => [p.x, p.y])}
+                                            points={(wall.points.length >= 3 ? wall.points : defaultMask).flatMap((p: { x: number, y: number }) => [p.x, p.y])}
                                             closed
                                             fill="black"
                                         />
@@ -417,7 +418,7 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
 
                                 {selectedWallId === wall.id && mode === 'view' && (
                                     <Line
-                                        points={wall.points.flatMap(p => [p.x, p.y])}
+                                        points={wall.points.flatMap((p: { x: number, y: number }) => [p.x, p.y])}
                                         closed
                                         stroke="#3b82f6"
                                         strokeWidth={2}
@@ -480,13 +481,13 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                 {mode === 'masking' && (
                     <>
                         <Line
-                            points={wallPoints.flatMap(p => [p.x, p.y])}
+                            points={wallPoints.flatMap((p: { x: number, y: number }) => [p.x, p.y])}
                             closed={wallPoints.length > 2}
                             stroke="#00A3FF"
                             strokeWidth={2 / stageScale} // Constant visual width
                             dash={[8 / stageScale, 4 / stageScale]} // Constant visual dash
                         />
-                        {wallPoints.map((point, i) => (
+                        {wallPoints.map((point: { x: number, y: number }, i: number) => (
                             <Circle
                                 key={i}
                                 x={point.x}
@@ -495,9 +496,8 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                                 fill="white"
                                 stroke="#00A3FF"
                                 strokeWidth={2 / stageScale}
-                                strokeWidth={2 / stageScale}
                                 draggable
-                                onMouseDown={(e) => {
+                                onMouseDown={(e: KonvaEventObject<MouseEvent>) => {
                                     e.cancelBubble = true;
                                 }}
                                 onDragMove={(e) => {
