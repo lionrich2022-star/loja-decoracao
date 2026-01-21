@@ -521,7 +521,11 @@ const CanvasStageInner = React.forwardRef(({ bgImageUrl, patternUrl, preset, sca
                                 fill="white"
                                 stroke="#00A3FF"
                                 strokeWidth={2 / stageScale}
+                                strokeWidth={2 / stageScale}
                                 draggable
+                                onMouseDown={(e) => {
+                                    e.cancelBubble = true;
+                                }}
                                 onDragMove={(e) => {
                                     // Pointer is Screen Space, but e.target.x() is Layer Space (Local).
                                     // Since Layer is scaled, x() returns local coord. Perfect.

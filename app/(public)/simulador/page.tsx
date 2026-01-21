@@ -19,6 +19,7 @@ const CanvasStage = dynamic(() => import('@/components/simulator/CanvasStage'), 
 });
 
 import { SIMULATOR_CONFIG, WallData } from '@/components/simulator/SimulatorConfig';
+import { RoomPreset } from '@/components/simulator/SimulatorPresets';
 
 
 
@@ -151,6 +152,20 @@ export default function SimuladorPage() {
         setWalls([defaultWall]);
         setSelectedWallId(defaultWallId);
         setWallPoints([]);
+        setMode('view');
+    };
+
+    const handlePresetSelect = (preset: RoomPreset) => {
+        setBgImage(preset.imageUrl);
+        setWalls(preset.walls);
+        // Select the first wall by default
+        if (preset.walls.length > 0) {
+            setSelectedWallId(preset.walls[0].id);
+            setWallPoints(preset.walls[0].points);
+        }
+        setMode('view');
+        // Optional: Pre-set a nice default dimension?
+        setDimensions({ width: 3.0, height: 2.6 });
     };
 
     // V2/V3 AI Detection Logic
@@ -301,6 +316,22 @@ export default function SimuladorPage() {
                         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                             {/* ... (Keep existing toolbar) ... */}
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Deseja trocar de ambiente? O progresso atual será perdido.')) {
+                                            setBgImage(null);
+                                            setWalls([]);
+                                            setWallPoints([]);
+                                            setSelectedPaper(null);
+                                        }
+                                    }}
+                                    className="px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                    title="Trocar Foto / Ambiente"
+                                >
+                                    🔄 Trocar
+                                </button>
+                                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+
                                 {/* V2: Auto Detect Button */}
                                 {config.enableV2 && (
                                     <button
@@ -411,7 +442,10 @@ export default function SimuladorPage() {
 
                     <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden relative cursor-crosshair">
                         {!bgImage ? (
-                            <ImageUploader onImageSelect={handleImageSelect} />
+                            <ImageUploader
+                                onImageSelect={handleImageSelect}
+                                onPresetSelect={handlePresetSelect}
+                            />
                         ) : (
                             <CanvasStage
                                 ref={stageRef}
@@ -426,7 +460,7 @@ export default function SimuladorPage() {
                                 walls={walls}
                                 selectedWallId={selectedWallId}
                                 onWallsChange={setWalls}
-                                onSelectWall={(id) => {
+                                onSelectWall={(id: string) => {
                                     setSelectedWallId(id);
                                     const wall = walls.find(w => w.id === id);
                                     if (wall) setWallPoints(wall.points);
