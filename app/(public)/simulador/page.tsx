@@ -12,6 +12,7 @@ import { Loader2, Wand2, Settings, ChevronLeft, Download, MessageCircle, Maximiz
 import Footer from '@/components/layout/Footer';
 import { SIMULATOR_CONFIG, WallData } from '@/components/simulator/SimulatorConfig';
 import { RoomPreset } from '@/components/simulator/SimulatorPresets';
+import { detectWallPoints } from '@/components/simulator/AutoMasker';
 
 // Import Konva Stage dynamically
 const CanvasStage = dynamic(() => import('@/components/simulator/CanvasStage'), {
@@ -125,7 +126,49 @@ export default function SimuladorPage() {
         setDimensions({ width: 3.0, height: 2.6 });
     };
 
-    const handleAutoDetect = async () => { /* ... existing logic ... */ };
+    const handleAutoDetect = async () => {
+        if (!bgImage) return;
+
+        setIsDetecting(true);
+        try {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = bgImage;
+
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
+
+            // Run AI (Pass original dimensions)
+            const detectedPoints = await detectWallPoints(img, img.width, img.height);
+
+            if (detectedPoints.length > 2) {
+                const newWalls = [...walls];
+                const activeWallIndex = newWalls.findIndex(w => w.id === selectedWallId) || 0;
+
+                if (activeWallIndex >= 0) {
+                    newWalls[activeWallIndex] = {
+                        ...newWalls[activeWallIndex],
+                        points: detectedPoints
+                    };
+                    setWalls(newWalls);
+                    setWallPoints(detectedPoints);
+                    // Switch to masking mode to show result
+                    setMode('masking');
+                }
+            } else {
+                alert("Não foi possível detectar uma parede clara. Tente ajustar manualmente.");
+            }
+        } catch (error) {
+            console.error("Auto detect failed", error);
+            alert("Erro na detecção automática. Tente novamente.");
+        } finally {
+            setIsDetecting(false);
+        }
+    };
+
+
 
     // ... (Keep existing masking helpers: handleStageClick, undoLastPoint, clearMask, handlePointsChange) ...
     const handleStageClick = (e: any) => {
@@ -294,6 +337,14 @@ export default function SimuladorPage() {
                                         title="Polígono Manual"
                                     >
                                         📐
+                                    </button>
+                                    <button
+                                        onClick={handleAutoDetect}
+                                        disabled={isDetecting}
+                                        className={`p-2 rounded transition-all ${isDetecting ? 'animate-pulse text-purple-400' : 'text-purple-400 hover:text-white hover:bg-purple-600'}`}
+                                        title="Detectar Parede com IA"
+                                    >
+                                        {isDetecting ? <Loader2 className="animate-spin w-5 h-5" /> : <Wand2 className="w-5 h-5" />}
                                     </button>
                                     <button
                                         onClick={() => setActiveTool('brush-add')}
