@@ -47,7 +47,7 @@ export const ROOM_PRESETS: RoomPreset[] = [
         id: 'room-quarto-luxo',
         label: 'Quarto Luxuoso',
         category: 'quarto',
-        imageUrl: 'https://images.unsplash.com/photo-1616594039964-40891a90b3a9?q=80&w=2000&auto=format&fit=crop',
+        imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=2000&auto=format&fit=crop',
         walls: [
             {
                 id: 'pres-2-wall-1',
@@ -145,6 +145,36 @@ export const ROOM_PRESETS: RoomPreset[] = [
                 id: 'pres-4-wall-1',
                 name: 'Parede Principal',
                 points: [{ x: 130, y: 130 }, { x: 1870, y: 130 }, { x: 1870, y: 900 }, { x: 130, y: 900 }],
+                brushStrokes: []
+            }
+        ]
+    },
+    {
+        id: 'room-infantil-bebe',
+        label: 'Quarto Bebê Clean',
+        category: 'infantil',
+        imageUrl: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?q=80&w=2000&auto=format&fit=crop',
+        walls: [
+            {
+                id: 'pres-inf-2-w1',
+                name: 'Parede Berço',
+                points: [{ x: 300, y: 150 }, { x: 1700, y: 150 }, { x: 1700, y: 900 }, { x: 300, y: 900 }],
+                brushStrokes: []
+            }
+        ]
+    },
+
+    // --- SALA EXTRA ---
+    {
+        id: 'room-sala-minimalista',
+        label: 'Sala Minimalista',
+        category: 'sala',
+        imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=2000&auto=format&fit=crop',
+        walls: [
+            {
+                id: 'pres-sala-2-w1',
+                name: 'Parede Central',
+                points: [{ x: 400, y: 200 }, { x: 1600, y: 200 }, { x: 1600, y: 800 }, { x: 400, y: 800 }],
                 brushStrokes: []
             }
         ]
